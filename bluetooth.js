@@ -11,11 +11,14 @@ class BBQBluetooth {
         this.onDataCallback = null;
         this.onStatusCallback = null;
         this.onWriteEchoCallback = null;
+        this.intentionalDisconnect = false;
         
         // GATT Service UUIDs
         this.SERVICE_UUID = '5fb70000-9c92-4489-ab95-5bc20bb36eab';
         this.TELEMETRY_UUID = '5fb70001-9c92-4489-ab95-5bc20bb36eab';
-        this.WRITE_UUID = '5fb70004-9c92-4489-ab95-5bc20bb36eab';
+        this.WRITE_AUTH_UUID = '5fb70004-9c92-4489-ab95-5bc20bb36eab'; // Write with auth (requires pairing)
+        this.WRITE_NOAUTH_UUID = '5fb70007-9c92-4489-ab95-5bc20bb36eab'; // Write without auth
+        this.paired = false;
     }
 
     // Connect to BBQ controller
@@ -38,15 +41,57 @@ class BBQBluetooth {
 
             this.updateStatus('connecting', `Connecting to ${this.device.name}...`);
 
-            // Connect to GATT server
-            this.server = await this.device.gatt.connect();
+            // Connect to GATT server with retry logic
+            let retries = 3;
+            let lastError = null;
+            
+            while (retries > 0) {
+                try {
+                    this.server = await this.device.gatt.connect();
+                    break; // Success, exit retry loop
+                } catch (error) {
+                    lastError = error;
+                    retries--;
+                    if (retries > 0) {
+                        this.updateStatus('connecting', `Retrying... (${retries} left)`);
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                    }
+                }
+            }
+            
+            if (!this.server) {
+                throw lastError || new Error('Failed to connect to GATT server');
+            }
             
             // Get service
             this.service = await this.server.getPrimaryService(this.SERVICE_UUID);
             
             // Get characteristics
             this.telemetryChar = await this.service.getCharacteristic(this.TELEMETRY_UUID);
-            this.writeChar = await this.service.getCharacteristic(this.WRITE_UUID);
+            
+            // Get write characteristic - use 5fb70004 (write with auth)
+            // This is the ONLY characteristic that actually changes device state
+            // Per protocol testing, 5fb70007 accepts writes silently but doesn't change anything
+            try {
+                this.writeChar = await this.service.getCharacteristic(this.WRITE_AUTH_UUID);
+                console.log('Got write-with-auth characteristic (5fb70004)');
+                
+                // Try to read the write characteristic to trigger pairing now
+                // This way the pairing dialog appears during connection, not during first command
+                try {
+                    await this.writeChar.readValue();
+                    this.paired = true;
+                    console.log('Device is paired - write commands ready');
+                } catch (pairErr) {
+                    console.warn('Read from write char failed (may need pairing):', pairErr.message);
+                    // On Chrome/Windows, this might trigger the pairing dialog
+                    // If pairing succeeds, subsequent writes will work
+                    // If it fails, the user may need to pair manually in Windows Settings
+                }
+            } catch (writeErr) {
+                console.error('Write characteristic 5fb70004 not found:', writeErr);
+                this.writeChar = null;
+            }
             
             // Start notifications
             await this.telemetryChar.startNotifications();
@@ -60,21 +105,32 @@ class BBQBluetooth {
             return true;
         } catch (error) {
             console.error('Connection error:', error);
-            this.updateStatus('disconnected', `Failed: ${error.message}`);
+            
+            // Provide helpful error messages for common issues
+            let errorMsg = error.message;
+            
+            if (error.message.includes('GATT Server') || error.message.includes('disconnected')) {
+                errorMsg = 'GATT Server Disconnected. Try:\n' +
+                          '1. Disconnect device from phone Bluetooth\n' +
+                          '2. Remove device from Windows Bluetooth settings\n' +
+                          '3. Refresh page and try again';
+            } else if (error.message.includes('User cancelled')) {
+                errorMsg = 'Connection cancelled';
+            } else if (error.message.includes('not found')) {
+                errorMsg = 'Device not found. Make sure BBQ controller is on and in range.';
+            }
+            
+            this.updateStatus('disconnected', errorMsg);
             return false;
         }
     }
 
     // Disconnect from device
     async disconnect() {
+        this.intentionalDisconnect = true;
         if (this.device && this.device.gatt.connected) {
             this.device.gatt.disconnect();
         }
-        this.onDisconnected();
-    }
-
-    // Handle disconnection
-    onDisconnected() {
         this.connected = false;
         this.device = null;
         this.server = null;
@@ -82,6 +138,57 @@ class BBQBluetooth {
         this.telemetryChar = null;
         this.writeChar = null;
         this.updateStatus('disconnected', 'Disconnected');
+    }
+
+    // Handle disconnection
+    onDisconnected() {
+        const wasConnected = this.connected;
+        this.connected = false;
+        this.server = null;
+        this.service = null;
+        this.telemetryChar = null;
+        this.writeChar = null;
+        this.updateStatus('disconnected', 'Disconnected');
+        
+        // Auto-reconnect if we were previously connected (unexpected disconnect)
+        if (wasConnected && this.device && !this.intentionalDisconnect) {
+            console.log('Unexpected disconnect - attempting auto-reconnect...');
+            this.updateStatus('connecting', 'Reconnecting...');
+            setTimeout(() => this.reconnect(), 2000);
+        }
+        this.intentionalDisconnect = false;
+    }
+
+    // Attempt to reconnect to a previously paired device
+    async reconnect() {
+        if (!this.device || !this.device.gatt) {
+            this.updateStatus('disconnected', 'Device lost - please reconnect manually');
+            return;
+        }
+
+        try {
+            this.server = await this.device.gatt.connect();
+            this.service = await this.server.getPrimaryService(this.SERVICE_UUID);
+            this.telemetryChar = await this.service.getCharacteristic(this.TELEMETRY_UUID);
+            
+            try {
+                this.writeChar = await this.service.getCharacteristic(this.WRITE_AUTH_UUID);
+            } catch (e) {
+                this.writeChar = null;
+            }
+
+            await this.telemetryChar.startNotifications();
+            this.telemetryChar.addEventListener('characteristicvaluechanged', (event) => {
+                this.handleTelemetry(event.target.value);
+            });
+
+            this.connected = true;
+            this.updateStatus('connected', `Reconnected to ${this.device.name}`);
+        } catch (error) {
+            console.error('Reconnect failed:', error);
+            this.updateStatus('disconnected', 'Reconnect failed - click Connect');
+            this.device = null;
+        }
     }
 
     // Parse 20-byte telemetry packet
@@ -165,30 +272,26 @@ class BBQBluetooth {
             throw new Error('Not connected to device');
         }
 
+        const data = new Uint8Array([command, value]);
+        const cmdHex = `0x${command.toString(16).padStart(2, '0')}`;
+
         try {
-            const data = new Uint8Array([command, value]);
-            await this.writeChar.writeValue(data);
-            console.log(`Sent command: 0x${command.toString(16).padStart(2, '0')} = ${value}`);
-
-            // Read echo (5fb70004 is readable on device) when available to confirm what was accepted
-            try {
-                const echoVal = await this.writeChar.readValue();
-                if (echoVal && echoVal.byteLength >= 2) {
-                    const echoCmd = echoVal.getUint8(0);
-                    const echoArg = echoVal.getUint8(1);
-                    console.log(`Device echo: 0x${echoCmd.toString(16).padStart(2, '0')} = ${echoArg}`);
-                    if (this.onWriteEchoCallback) {
-                        try { this.onWriteEchoCallback(echoCmd, echoArg); } catch (cbErr) { console.error('onWriteEchoCallback error', cbErr); }
-                    }
-                }
-            } catch (readErr) {
-                // Not fatal - some browsers/devices may not support read after write
-                console.debug('Could not read echo from write characteristic:', readErr);
-            }
-
+            // 5fb70004 requires authentication/pairing
+            // First write may trigger Windows pairing dialog - that's expected
+            // After pairing once, subsequent writes work normally
+            await this.writeChar.writeValueWithResponse(data);
+            this.paired = true;
+            console.log(`Sent command: ${cmdHex} = ${value}`);
             return true;
         } catch (error) {
-            console.error('Write error:', error);
+            console.error(`Write error (${cmdHex}=${value}):`, error);
+            
+            // If we get a security/auth error, the device needs pairing
+            // Chrome should show a pairing dialog automatically
+            if (error.message && (error.message.includes('GATT') || error.message.includes('auth') || error.message.includes('Security'))) {
+                console.log('Write failed - device may need pairing. If you see a Windows pairing dialog, accept it and try again.');
+            }
+            
             throw error;
         }
     }

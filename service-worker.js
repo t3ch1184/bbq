@@ -1,19 +1,17 @@
 // service-worker.js - PWA Service Worker
 
-const CACHE_NAME = 'bbq-controller-v1';
+const CACHE_NAME = 'bbq-controller-v5';
 const urlsToCache = [
     'index.html',
     'styles.css',
     'app.js',
     'bluetooth.js',
-    'manifest.json',
-    'icon-192.png',
-    'icon-512.png',
-    'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js'
+    'manifest.json'
 ];
 
-// Install event - cache files
+// Install event - cache files and take over immediately
 self.addEventListener('install', (event) => {
+    self.skipWaiting(); // Activate new service worker immediately
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then((cache) => {
@@ -26,7 +24,7 @@ self.addEventListener('install', (event) => {
     );
 });
 
-// Activate event - clean up old caches
+// Activate event - clean up old caches and claim clients
 self.addEventListener('activate', (event) => {
     event.waitUntil(
         caches.keys().then((cacheNames) => {
@@ -38,42 +36,28 @@ self.addEventListener('activate', (event) => {
                     }
                 })
             );
-        })
+        }).then(() => self.clients.claim()) // Take over all open pages immediately
     );
 });
 
-// Fetch event - serve from cache, fallback to network
+// Fetch event - network first, fallback to cache
 self.addEventListener('fetch', (event) => {
     event.respondWith(
-        caches.match(event.request)
+        fetch(event.request)
             .then((response) => {
-                // Cache hit - return response
-                if (response) {
-                    return response;
-                }
-                
-                // Clone the request
-                const fetchRequest = event.request.clone();
-                
-                return fetch(fetchRequest).then((response) => {
-                    // Check if valid response
-                    if (!response || response.status !== 200 || response.type !== 'basic') {
-                        return response;
-                    }
-                    
-                    // Clone the response
+                // Got a good response - update the cache
+                if (response && response.status === 200) {
                     const responseToCache = response.clone();
-                    
                     caches.open(CACHE_NAME).then((cache) => {
                         cache.put(event.request, responseToCache);
                     });
-                    
-                    return response;
-                });
+                }
+                return response;
             })
             .catch(() => {
-                // Return offline page if available
-                return caches.match('index.html');
+                // Network failed - try cache
+                return caches.match(event.request)
+                    .then((response) => response || caches.match('index.html'));
             })
     );
 });
