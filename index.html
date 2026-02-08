@@ -235,6 +235,31 @@
     <!-- Toast Notifications -->
     <div id="toastContainer"></div>
 
+    <!-- Modal Dialog -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Set Temperature</h3>
+                <button class="modal-close" id="modalClose">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-value-display">
+                    <span id="modalValueDisplay">225</span>
+                    <span id="modalValueUnit">°F</span>
+                </div>
+                <input type="range" id="modalSlider" min="150" max="400" value="225" step="5">
+                <div class="modal-range-labels">
+                    <span id="modalMinLabel">150°F</span>
+                    <span id="modalMaxLabel">400°F</span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn modal-btn-cancel" id="modalCancel">Cancel</button>
+                <button class="modal-btn modal-btn-confirm" id="modalConfirm">Set</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="bluetooth.js"></script>

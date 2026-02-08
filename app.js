@@ -62,6 +62,83 @@ class BBQApp {
             document.body.classList.remove('dark-mode');
             document.getElementById('themeToggle').textContent = '☀️';
         }
+
+        // Setup modal
+        this.setupModal();
+    }
+
+    setupModal() {
+        const modal = document.getElementById('modal');
+        const modalClose = document.getElementById('modalClose');
+        const modalCancel = document.getElementById('modalCancel');
+        const modalConfirm = document.getElementById('modalConfirm');
+        const modalSlider = document.getElementById('modalSlider');
+        const modalValueDisplay = document.getElementById('modalValueDisplay');
+
+        // Update display as slider moves
+        modalSlider.addEventListener('input', (e) => {
+            const value = parseInt(e.target.value);
+            if (value === 0 && this.currentModalType === 'alarm') {
+                modalValueDisplay.textContent = 'Off';
+            } else {
+                modalValueDisplay.textContent = value;
+            }
+        });
+
+        // Close modal handlers
+        modalClose.addEventListener('click', () => this.hideModal());
+        modalCancel.addEventListener('click', () => this.hideModal());
+        
+        // Click outside modal to close
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) this.hideModal();
+        });
+
+        // Confirm button
+        modalConfirm.addEventListener('click', () => {
+            if (this.modalCallback) {
+                const value = parseInt(modalSlider.value);
+                this.modalCallback(value);
+            }
+            this.hideModal();
+        });
+    }
+
+    showModal(title, min, max, value, step, type = 'temp') {
+        return new Promise((resolve) => {
+            const modal = document.getElementById('modal');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalSlider = document.getElementById('modalSlider');
+            const modalValueDisplay = document.getElementById('modalValueDisplay');
+            const modalMinLabel = document.getElementById('modalMinLabel');
+            const modalMaxLabel = document.getElementById('modalMaxLabel');
+            
+            this.currentModalType = type;
+            this.modalCallback = resolve;
+            
+            modalTitle.textContent = title;
+            modalSlider.min = min;
+            modalSlider.max = max;
+            modalSlider.value = value;
+            modalSlider.step = step;
+            
+            if (value === 0 && type === 'alarm') {
+                modalValueDisplay.textContent = 'Off';
+            } else {
+                modalValueDisplay.textContent = value;
+            }
+            
+            modalMinLabel.textContent = min === 0 ? 'Off' : `${min}°F`;
+            modalMaxLabel.textContent = `${max}°F`;
+            
+            modal.classList.add('show');
+        });
+    }
+
+    hideModal() {
+        const modal = document.getElementById('modal');
+        modal.classList.remove('show');
+        this.modalCallback = null;
     }
 
     setupEventListeners() {
@@ -209,24 +286,30 @@ class BBQApp {
         // New: Status icon click handlers (allow quick edits)
         // Temperature cards: click to set targets/alarms
         document.querySelectorAll('.temp-item').forEach(item => {
-            item.addEventListener('click', (e) => {
+            item.addEventListener('click', async (e) => {
+                if (!this.bluetooth.connected) {
+                    this.showToast('Connect to BBQ first', 'warning');
+                    return;
+                }
+                
                 const id = item.querySelector('.temp-value').id; // pitTemp, food1Temp, food2Temp
+                
                 if (id === 'pitTemp') {
-                    const val = prompt('Set pit target temperature (150-400 °F). Cancel to abort');
-                    const t = val ? parseInt(val) : null;
-                    if (t && this.bluetooth.connected) {
+                    const currentValue = this.currentData?.pitSet ? this.currentData.pitSet - 145 : 225;
+                    const t = await this.showModal('Set Pit Temperature', 150, 400, currentValue, 5, 'temp');
+                    if (t !== null && t !== undefined) {
                         this.bluetooth.setPitTemp(t).catch(() => this.showToast('Failed to set pit temp', 'error'));
                     }
                 } else if (id === 'food1Temp') {
-                    const val = prompt('Set Food 1 alarm (0 = off, 50-250 °F). Cancel to abort');
-                    const t = val ? parseInt(val) : null;
-                    if ((t === 0 || (t >= 50 && t <= 250)) && this.bluetooth.connected) {
+                    const currentValue = this.currentData?.food1Alarm || 0;
+                    const t = await this.showModal('Set Food 1 Alarm', 0, 250, currentValue, 5, 'alarm');
+                    if (t !== null && t !== undefined) {
                         this.bluetooth.setFood1Alarm(t).catch(() => this.showToast('Failed to set Food 1 alarm', 'error'));
                     }
                 } else if (id === 'food2Temp') {
-                    const val = prompt('Set Food 2 alarm (0 = off, 50-250 °F). Cancel to abort');
-                    const t = val ? parseInt(val) : null;
-                    if ((t === 0 || (t >= 50 && t <= 250)) && this.bluetooth.connected) {
+                    const currentValue = this.currentData?.food2Alarm || 0;
+                    const t = await this.showModal('Set Food 2 Alarm', 0, 250, currentValue, 5, 'alarm');
+                    if (t !== null && t !== undefined) {
                         this.bluetooth.setFood2Alarm(t).catch(() => this.showToast('Failed to set Food 2 alarm', 'error'));
                     }
                 }
