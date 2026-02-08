@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#ff6b35">
+    <meta name="description" content="Control your iQE050 BBQ controller via Bluetooth">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    <title>BBQ Controller</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" href="icon-192.png">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="dark-mode">
+    <!-- Header -->
+    <header>
+        <div class="header-content">
+            <h1>🔥 BBQ Controller</h1>
+            <div class="header-controls">
+                <button id="themeToggle" class="icon-btn" title="Toggle theme">🌙</button>
+                <button id="connectBtn" class="primary-btn">Connect</button>
+            </div>
+        </div>
+        <div id="connectionStatus" class="status-bar disconnected">
+            <span class="status-dot"></span>
+            <span class="status-text">Disconnected</span>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+        <!-- Temperature Display -->
+        <section id="tempSection" class="card">
+            <h2>Temperatures</h2>
+            <div class="temp-grid">
+                <div class="temp-item">
+                    <div class="temp-label">Pit</div>
+                    <div class="temp-value" id="pitTemp">--°F</div>
+                    <div class="temp-target" id="pitTarget">Target: --°F</div>
+                </div>
+                <div class="temp-item">
+                    <div class="temp-label">Food 1</div>
+                    <div class="temp-value" id="food1Temp">--°F</div>
+                    <div class="temp-target" id="food1Alarm">Alarm: --°F</div>
+                </div>
+                <div class="temp-item">
+                    <div class="temp-label">Food 2</div>
+                    <div class="temp-value" id="food2Temp">--°F</div>
+                    <div class="temp-target" id="food2Alarm">Alarm: --°F</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Temperature Graph -->
+        <section id="graphSection" class="card">
+            <h2>Temperature History</h2>
+            <div class="graph-controls">
+                <button class="small-btn" onclick="app.setGraphRange(15)">15m</button>
+                <button class="small-btn" onclick="app.setGraphRange(30)">30m</button>
+                <button class="small-btn active" onclick="app.setGraphRange(60)">1h</button>
+                <button class="small-btn" onclick="app.setGraphRange(180)">3h</button>
+            </div>
+            <canvas id="tempChart"></canvas>
+        </section>
+
+        <!-- Status Indicators -->
+        <section id="statusSection" class="card">
+            <h2>Status</h2>
+            <div class="status-grid">
+                <div class="status-item">
+                    <span class="status-icon">🌡️</span>
+                    <span class="status-label">Temp Units</span>
+                    <span class="status-value" id="tempUnits">°F</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-icon">💨</span>
+                    <span class="status-label">Fan Speed</span>
+                    <span class="status-value" id="fanSpeed">Auto</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-icon">🔔</span>
+                    <span class="status-label">Sound</span>
+                    <span class="status-value" id="soundLevel">Level 3</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-icon">🔆</span>
+                    <span class="status-label">Display</span>
+                    <span class="status-value" id="displayBright">Level 3</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-icon">⏰</span>
+                    <span class="status-label">Uptime</span>
+                    <span class="status-value" id="uptime">0m</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-icon">🚪</span>
+                    <span class="status-label">Lid Detect</span>
+                    <span class="status-value" id="lidDetect">Enabled</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Fuel Monitor -->
+        <section id="fuelSection" class="card">
+            <h2>⛽ Fuel Monitor</h2>
+            <div class="fuel-status">
+                <div class="fuel-indicator">
+                    <div class="fuel-bar">
+                        <div id="fuelLevel" class="fuel-bar-fill"></div>
+                    </div>
+                    <div id="fuelText" class="fuel-text">Monitoring...</div>
+                </div>
+                <div class="fuel-details">
+                    <div class="fuel-metric">
+                        <span>Avg Fan Duty:</span>
+                        <span id="avgFanDuty">--%</span>
+                    </div>
+                    <div class="fuel-metric">
+                        <span>Temp Drop Rate:</span>
+                        <span id="tempDrop">--°F/min</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Controls -->
+        <section id="controlsSection" class="card">
+            <h2>Controls</h2>
+            
+            <!-- Pit Temperature -->
+            <div class="control-group">
+                <label for="pitSetSlider">
+                    Pit Temperature
+                    <span class="control-value" id="pitSetValue">225°F</span>
+                </label>
+                <input type="range" id="pitSetSlider" min="150" max="400" value="225" step="5">
+                <div class="range-labels">
+                    <span>150°F</span>
+                    <span>400°F</span>
+                </div>
+            </div>
+
+            <!-- Food 1 Alarm -->
+            <div class="control-group">
+                <label for="food1AlarmSlider">
+                    Food 1 Alarm
+                    <span class="control-value" id="food1AlarmValue">Off</span>
+                </label>
+                <input type="range" id="food1AlarmSlider" min="0" max="250" value="0" step="5">
+                <div class="range-labels">
+                    <span>Off</span>
+                    <span>250°F</span>
+                </div>
+            </div>
+
+            <!-- Food 2 Alarm -->
+            <div class="control-group">
+                <label for="food2AlarmSlider">
+                    Food 2 Alarm
+                    <span class="control-value" id="food2AlarmValue">Off</span>
+                </label>
+                <input type="range" id="food2AlarmSlider" min="0" max="250" value="0" step="5">
+                <div class="range-labels">
+                    <span>Off</span>
+                    <span>250°F</span>
+                </div>
+            </div>
+
+            <!-- Fan Speed -->
+            <div class="control-group">
+                <label>Fan Speed</label>
+                <div class="button-group">
+                    <button class="toggle-btn active" data-fan="0">Auto</button>
+                    <button class="toggle-btn" data-fan="1">1</button>
+                    <button class="toggle-btn" data-fan="3">3</button>
+                    <button class="toggle-btn" data-fan="5">5</button>
+                    <button class="toggle-btn" data-fan="7">7</button>
+                </div>
+            </div>
+
+            <!-- Lid Detect -->
+            <div class="control-group">
+                <label>Lid Detect</label>
+                <div class="button-group">
+                    <button class="toggle-btn active" data-lid="1">On</button>
+                    <button class="toggle-btn" data-lid="0">Off</button>
+                </div>
+            </div>
+
+            <!-- Temperature Units -->
+            <div class="control-group">
+                <label>Temperature Units</label>
+                <div class="button-group">
+                    <button class="toggle-btn active" data-units="0">°F</button>
+                    <button class="toggle-btn" data-units="1">°C</button>
+                </div>
+            </div>
+
+            <!-- Sound Level -->
+            <div class="control-group">
+                <label for="soundSlider">
+                    Sound Level
+                    <span class="control-value" id="soundValue">3</span>
+                </label>
+                <input type="range" id="soundSlider" min="0" max="5" value="3" step="1">
+                <div class="range-labels">
+                    <span>Off</span>
+                    <span>5</span>
+                </div>
+            </div>
+
+            <!-- Display Brightness -->
+            <div class="control-group">
+                <label for="displaySlider">
+                    Display Brightness
+                    <span class="control-value" id="displayValue">3</span>
+                </label>
+                <input type="range" id="displaySlider" min="0" max="3" value="3" step="1">
+                <div class="range-labels">
+                    <span>Off</span>
+                    <span>3</span>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <p>BBQ Controller - Built for iQE050</p>
+    </footer>
+
+    <!-- Toast Notifications -->
+    <div id="toastContainer"></div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="bluetooth.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
