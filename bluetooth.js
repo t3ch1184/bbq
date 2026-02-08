@@ -260,6 +260,19 @@ class BBQBluetooth {
         data.heartbeat = (data.byte14 >> 7) & 0x01;  // Bit 7: toggles every 5 seconds
         data.delayEnabled = data.byte14 & 0x01;      // Bit 0: delay pit set enabled
 
+        // Parse byte 15: Alarm/Status Flags
+        // bit7=LID  bit6=COLD  bit5=HOT  bit4=F2Done  bit3=F1Done  bit2=F2Cfg  bit1=F1Cfg  bit0=???
+        data.flags = {
+            unknown:       (data.byte15 & 0x01) !== 0,  // bit0: unknown
+            food1Enabled:  (data.byte15 & 0x02) !== 0,  // bit1: FOOD1 alarm configured
+            food2Enabled:  (data.byte15 & 0x04) !== 0,  // bit2: FOOD2 alarm configured
+            food1Done:     (data.byte15 & 0x08) !== 0,  // bit3: FOOD1 alarm triggered
+            food2Done:     (data.byte15 & 0x10) !== 0,  // bit4: FOOD2 alarm triggered
+            pitHot:        (data.byte15 & 0x20) !== 0,  // bit5: PIT over-temperature
+            pitCold:       (data.byte15 & 0x40) !== 0,  // bit6: PIT under-temperature
+            lidOpen:       (data.byte15 & 0x80) !== 0   // bit7: LID open / notification
+        };
+
         // Call callback with parsed data
         if (this.onDataCallback) {
             this.onDataCallback(data);

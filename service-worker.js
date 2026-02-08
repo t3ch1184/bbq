@@ -1,6 +1,6 @@
 // service-worker.js - PWA Service Worker
 // UPDATE THIS VERSION STRING WHENEVER YOU PUSH CHANGES
-const CACHE_VERSION = 'v8';
+const CACHE_VERSION = 'v9';
 const CACHE_NAME = 'bbq-controller-' + CACHE_VERSION;
 const urlsToCache = [
     './',

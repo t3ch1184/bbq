@@ -170,6 +170,73 @@ body {
     50% { opacity: 0.7; }
 }
 
+/* --- Alert Banner (byte15 flags) --- */
+.alert-banner {
+    background: var(--bg-1);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 16px;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.alert-banner.hidden {
+    display: none;
+}
+
+.alert-items {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+}
+
+.alert-item {
+    display: none;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    animation: alert-pulse 1s ease infinite;
+}
+
+.alert-item.active {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.alert-lid {
+    background: rgba(255, 71, 87, 0.2);
+    color: var(--red);
+    border: 1px solid var(--red);
+}
+
+.alert-hot {
+    background: rgba(255, 107, 53, 0.2);
+    color: var(--orange);
+    border: 1px solid var(--orange);
+}
+
+.alert-cold {
+    background: rgba(100, 180, 255, 0.2);
+    color: #64b4ff;
+    border: 1px solid #64b4ff;
+}
+
+.alert-food1,
+.alert-food2 {
+    background: rgba(38, 222, 129, 0.2);
+    color: var(--green);
+    border: 1px solid var(--green);
+}
+
+@keyframes alert-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
 /* --- Help Banner --- */
 .help-banner {
     margin: 12px 16px 0;
@@ -1079,4 +1146,106 @@ footer {
     color: var(--orange);
     min-width: 48px;
     text-align: right;
+}
+
+/* --- Product Manuals --- */
+.manuals-card {
+    animation: ember-pulse 13s ease-in-out infinite;
+    animation-delay: -4s;
+}
+
+.manual-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 14px;
+    background: var(--bg-2);
+    border-radius: var(--radius-sm);
+    margin-bottom: 4px;
+    cursor: pointer;
+    transition: background 0.15s;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.manual-row:active {
+    background: var(--bg-3);
+}
+
+.manual-icon {
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}
+
+.manual-name {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-0);
+    flex: 1;
+}
+
+.manual-arrow {
+    font-size: 1.4rem;
+    color: var(--text-2);
+    font-weight: 300;
+    line-height: 1;
+}
+
+/* --- PDF Viewer Overlay --- */
+.pdf-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    background: var(--bg-0);
+    display: none;
+    flex-direction: column;
+}
+
+.pdf-overlay.open {
+    display: flex;
+}
+
+.pdf-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: var(--bg-1);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+}
+
+.pdf-close {
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: var(--bg-2);
+    color: var(--text-0);
+    border-radius: 50%;
+    font-size: 1.1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+    flex-shrink: 0;
+}
+
+.pdf-close:active {
+    background: var(--bg-3);
+}
+
+.pdf-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text-0);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.pdf-frame {
+    flex: 1;
+    border: none;
+    width: 100%;
+    background: #fff;
 }

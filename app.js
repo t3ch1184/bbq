@@ -26,6 +26,18 @@ class BBQApp {
         // Notification permission
         this.notificationsEnabled = false;
 
+        // Wake lock to keep screen on during cook
+        this.wakeLock = null;
+
+        // Track previous flag states to avoid repeat notifications
+        this.prevFlags = {
+            food1Done: false,
+            food2Done: false,
+            pitHot: false,
+            pitCold: false,
+            lidOpen: false
+        };
+
         this.init();
     }
 
@@ -53,6 +65,9 @@ class BBQApp {
 
         // Request notification permission
         this.requestNotificationPermission();
+
+        // Setup wake lock reacquire on tab focus
+        this.setupWakeLockReacquire();
 
         // Register service worker
         this.registerServiceWorker();
@@ -870,23 +885,63 @@ class BBQApp {
     }
 
     checkAlarms(data) {
-        // Check Food 1 alarm
-        if (data.food1Alarm > 0 && data.food1Temp !== 999 && data.food1Temp >= data.food1Alarm) {
-            this.showNotification('Food 1 Ready!', `Temperature reached ${data.food1Temp}°F`);
-        }
+        // Use byte15 flags for device-detected alarms
+        const flags = data.flags || {};
 
-        // Check Food 2 alarm
-        if (data.food2Alarm > 0 && data.food2Temp !== 999 && data.food2Temp >= data.food2Alarm) {
-            this.showNotification('Food 2 Ready!', `Temperature reached ${data.food2Temp}°F`);
-        }
+        // Update alert banner visibility
+        this.updateAlertBanner(flags);
 
-        // Check pit alarm (temperature drop)
-        if (data.pitAlarm > 0 && data.pitTemp !== 999 && data.pitSet > 0) {
-            const targetTemp = data.pitSet - 145;
-            if (data.pitTemp < (targetTemp - data.pitAlarm)) {
-                this.showNotification('Pit Temperature Low', `${data.pitTemp}°F is ${targetTemp - data.pitTemp}°F below target`);
-            }
+        // FOOD 1 DONE (flag-based, fires once per transition)
+        if (flags.food1Done && !this.prevFlags.food1Done) {
+            this.showNotification('🥩 Food 1 Done!', `Food 1 reached target ${data.food1Alarm}°F`);
         }
+        this.prevFlags.food1Done = flags.food1Done;
+
+        // FOOD 2 DONE (flag-based)
+        if (flags.food2Done && !this.prevFlags.food2Done) {
+            this.showNotification('🍖 Food 2 Done!', `Food 2 reached target ${data.food2Alarm}°F`);
+        }
+        this.prevFlags.food2Done = flags.food2Done;
+
+        // PIT HOT (over-temperature)
+        if (flags.pitHot && !this.prevFlags.pitHot) {
+            this.showNotification('🔥 Pit Too Hot!', `Pit temperature exceeded target`);
+        }
+        this.prevFlags.pitHot = flags.pitHot;
+
+        // PIT COLD (under-temperature)
+        if (flags.pitCold && !this.prevFlags.pitCold) {
+            this.showNotification('❄️ Pit Too Cold!', `Pit temperature dropped below target`);
+        }
+        this.prevFlags.pitCold = flags.pitCold;
+
+        // LID OPEN
+        if (flags.lidOpen && !this.prevFlags.lidOpen) {
+            this.showNotification('🚨 Lid Open!', 'Lid has been opened');
+        }
+        this.prevFlags.lidOpen = flags.lidOpen;
+    }
+
+    updateAlertBanner(flags) {
+        const banner = document.getElementById('alertBanner');
+        const lidEl = document.getElementById('alertLid');
+        const hotEl = document.getElementById('alertHot');
+        const coldEl = document.getElementById('alertCold');
+        const food1El = document.getElementById('alertFood1');
+        const food2El = document.getElementById('alertFood2');
+
+        if (!banner) return;
+
+        // Toggle each alert item
+        lidEl?.classList.toggle('active', !!flags.lidOpen);
+        hotEl?.classList.toggle('active', !!flags.pitHot);
+        coldEl?.classList.toggle('active', !!flags.pitCold);
+        food1El?.classList.toggle('active', !!flags.food1Done);
+        food2El?.classList.toggle('active', !!flags.food2Done);
+
+        // Show/hide banner based on whether any flag is active
+        const anyActive = flags.lidOpen || flags.pitHot || flags.pitCold || flags.food1Done || flags.food2Done;
+        banner.classList.toggle('hidden', !anyActive);
     }
 
     updateConnectionStatus(state, message) {
@@ -908,6 +963,9 @@ class BBQApp {
             // Add glow to pit card
             const pitCard = document.querySelector('.temp-card.pit');
             if (pitCard) pitCard.classList.add('has-reading');
+
+            // Keep screen on so BLE stays alive
+            this.acquireWakeLock();
         } else {
             connectBtn.classList.remove('connected');
             Array.from(connectBtn.childNodes).forEach(n => { if (n.nodeType === 3) n.remove(); });
@@ -917,6 +975,9 @@ class BBQApp {
             // Remove pit glow
             const pitCard = document.querySelector('.temp-card.pit');
             if (pitCard) pitCard.classList.remove('has-reading');
+
+            // Release wake lock
+            this.releaseWakeLock();
         }
     }
 
@@ -925,6 +986,39 @@ class BBQApp {
             const permission = await Notification.requestPermission();
             this.notificationsEnabled = permission === 'granted';
         }
+    }
+
+    // --- Wake Lock: keeps screen on so BLE connection survives ---
+    async acquireWakeLock() {
+        if (!('wakeLock' in navigator)) {
+            console.warn('Wake Lock API not supported');
+            return;
+        }
+        try {
+            this.wakeLock = await navigator.wakeLock.request('screen');
+            this.wakeLock.addEventListener('release', () => {
+                console.log('Wake lock released');
+            });
+            console.log('Wake lock acquired — screen will stay on');
+        } catch (err) {
+            console.warn('Wake lock failed:', err.message);
+        }
+    }
+
+    releaseWakeLock() {
+        if (this.wakeLock) {
+            this.wakeLock.release();
+            this.wakeLock = null;
+        }
+    }
+
+    // Re-acquire wake lock when user returns to the app
+    setupWakeLockReacquire() {
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible' && this.bluetooth.connected) {
+                this.acquireWakeLock();
+            }
+        });
     }
 
     showNotification(title, body) {
@@ -967,6 +1061,23 @@ class BBQApp {
                 console.error('Service Worker registration failed:', error);
             }
         }
+    }
+
+    // --- Product Manuals ---
+    openManual(filename, title) {
+        const viewer = document.getElementById('pdfViewer');
+        const frame = document.getElementById('pdfFrame');
+        const titleEl = document.getElementById('pdfTitle');
+        titleEl.textContent = title || 'Manual';
+        frame.src = filename;
+        viewer.classList.add('open');
+    }
+
+    closeManual() {
+        const viewer = document.getElementById('pdfViewer');
+        const frame = document.getElementById('pdfFrame');
+        viewer.classList.remove('open');
+        frame.src = ''; // stop loading / free memory
     }
 }
 

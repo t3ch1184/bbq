@@ -13,12 +13,12 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" href="icon-192.png">
     <link rel="apple-touch-icon" href="icon-192.png">
-    <link rel="stylesheet" href="styles.css?v=8">
+    <link rel="stylesheet" href="styles.css?v=9">
 
     <!-- Auto-update: detect new versions & reload -->
     <script>
     (function(){
-        var APP_VER = 'v8';
+        var APP_VER = 'v9';
         var KEY = 'bbq_ver';
         var prev = localStorage.getItem(KEY);
         if (prev && prev !== APP_VER) {
@@ -67,6 +67,17 @@
     <!-- Connection Status -->
     <div id="connectionStatus" class="conn-status disconnected">
         <span class="status-text">Not Connected</span>
+    </div>
+
+    <!-- Alert Banner (shown when flags are active) -->
+    <div id="alertBanner" class="alert-banner hidden">
+        <div class="alert-items">
+            <span class="alert-item alert-lid" id="alertLid">🚨 LID OPEN</span>
+            <span class="alert-item alert-hot" id="alertHot">🔥 PIT HOT</span>
+            <span class="alert-item alert-cold" id="alertCold">❄️ PIT COLD</span>
+            <span class="alert-item alert-food1" id="alertFood1">✅ FOOD 1 DONE</span>
+            <span class="alert-item alert-food2" id="alertFood2">✅ FOOD 2 DONE</span>
+        </div>
     </div>
 
     <!-- Main Content -->
@@ -252,10 +263,42 @@
             </div>
         </div>
 
+        <!-- Product Manuals -->
+        <div class="section-card manuals-card">
+            <div class="prog-header">
+                <span class="prog-icon">📖</span>
+                <span class="prog-title">Product Manuals</span>
+            </div>
+            <div class="manual-row" onclick="app.openManual('iQ110-manual.pdf', 'iQ110 Manual')">
+                <span class="manual-icon">📄</span>
+                <span class="manual-name">iQ110 Manual</span>
+                <span class="manual-arrow">›</span>
+            </div>
+            <div class="manual-row" onclick="app.openManual('iQ120-manual.pdf', 'iQ120 Manual')">
+                <span class="manual-icon">📄</span>
+                <span class="manual-name">iQ120 Manual</span>
+                <span class="manual-arrow">›</span>
+            </div>
+            <div class="manual-row" onclick="app.openManual('iQ130-manual.pdf', 'iQ130 Manual')">
+                <span class="manual-icon">📄</span>
+                <span class="manual-name">iQ130 Manual</span>
+                <span class="manual-arrow">›</span>
+            </div>
+        </div>
+
     </main>
 
     <!-- Footer -->
     <footer>BBQ Controller &middot; iQE050</footer>
+
+    <!-- PDF Viewer Overlay -->
+    <div id="pdfViewer" class="pdf-overlay">
+        <div class="pdf-header">
+            <button class="pdf-close" onclick="app.closeManual()">✕</button>
+            <span class="pdf-title" id="pdfTitle">Manual</span>
+        </div>
+        <iframe id="pdfFrame" class="pdf-frame"></iframe>
+    </div>
 
     <!-- Toast Notifications -->
     <div id="toastContainer"></div>
