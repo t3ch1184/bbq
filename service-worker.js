@@ -1,12 +1,16 @@
 // service-worker.js - PWA Service Worker
-
-const CACHE_NAME = 'bbq-controller-v7';
+// UPDATE THIS VERSION STRING WHENEVER YOU PUSH CHANGES
+const CACHE_VERSION = 'v8';
+const CACHE_NAME = 'bbq-controller-' + CACHE_VERSION;
 const urlsToCache = [
+    './',
     'index.html',
-    'styles.css?v=7',
-    'app.js?v=7',
-    'bluetooth.js?v=7',
-    'manifest.json'
+    'styles.css?v=' + CACHE_VERSION,
+    'app.js?v=' + CACHE_VERSION,
+    'bluetooth.js?v=' + CACHE_VERSION,
+    'manifest.json',
+    'icon-192.png',
+    'icon-512.png'
 ];
 
 // Install event - cache files and take over immediately

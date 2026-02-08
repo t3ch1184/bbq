@@ -13,16 +13,15 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" href="icon-192.png">
     <link rel="apple-touch-icon" href="icon-192.png">
-    <link rel="stylesheet" href="styles.css?v=7">
+    <link rel="stylesheet" href="styles.css?v=8">
 
-    <!-- Auto-update: nuke old caches & force latest version -->
+    <!-- Auto-update: detect new versions & reload -->
     <script>
     (function(){
-        var APP_VER = 'v7';
+        var APP_VER = 'v8';
         var KEY = 'bbq_ver';
         var prev = localStorage.getItem(KEY);
         if (prev && prev !== APP_VER) {
-            // Version changed — wipe everything
             if ('caches' in window) {
                 caches.keys().then(function(names) {
                     names.forEach(function(n) { caches.delete(n); });
@@ -34,11 +33,18 @@
                 });
             }
             localStorage.setItem(KEY, APP_VER);
-            // Reload clean after a brief moment to let unregister finish
             setTimeout(function() { location.reload(true); }, 300);
             return;
         }
         localStorage.setItem(KEY, APP_VER);
+
+        // Listen for new service workers and auto-reload
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.addEventListener('controllerchange', function() {
+                // New service worker took over — reload to get fresh assets
+                location.reload();
+            });
+        }
     })();
     </script>
 </head>
@@ -293,7 +299,7 @@
     <span id="food2AlarmValue" style="display:none">Off</span>
 
     <!-- Scripts -->
-    <script src="bluetooth.js?v=7"></script>
-    <script src="app.js?v=7"></script>
+    <script src="bluetooth.js?v=8"></script>
+    <script src="app.js?v=8"></script>
 </body>
 </html>
