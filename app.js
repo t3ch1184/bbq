@@ -129,6 +129,7 @@ class BBQApp {
         document.getElementById('soundSlider').addEventListener('change', (e) => {
             const level = parseInt(e.target.value);
             document.getElementById('soundValue').textContent = level === 0 ? 'Off' : level;
+            document.getElementById('soundLevel').textContent = level === 0 ? 'Off' : level;
             if (this.bluetooth.connected) {
                 this.bluetooth.setSoundLevel(level).catch(err => {
                     this.showToast('Failed to set sound level', 'error');
@@ -139,11 +140,13 @@ class BBQApp {
         document.getElementById('soundSlider').addEventListener('input', (e) => {
             const level = parseInt(e.target.value);
             document.getElementById('soundValue').textContent = level === 0 ? 'Off' : level;
+            document.getElementById('soundLevel').textContent = level === 0 ? 'Off' : level;
         });
 
         document.getElementById('displaySlider').addEventListener('change', (e) => {
             const level = parseInt(e.target.value);
-            document.getElementById('displayValue').textContent = level === 0 ? 'Off' : level;
+            document.getElementById('displayValue').textContent = level;
+            document.getElementById('displayLevel').textContent = level;
             if (this.bluetooth.connected) {
                 this.bluetooth.setDisplayBrightness(level).catch(err => {
                     this.showToast('Failed to set display brightness', 'error');
@@ -153,7 +156,8 @@ class BBQApp {
 
         document.getElementById('displaySlider').addEventListener('input', (e) => {
             const level = parseInt(e.target.value);
-            document.getElementById('displayValue').textContent = level === 0 ? 'Off' : level;
+            document.getElementById('displayValue').textContent = level;
+            document.getElementById('displayLevel').textContent = level;
         });
 
         // Fan speed buttons
@@ -194,6 +198,7 @@ class BBQApp {
                     this.bluetooth.setTempUnits(fahrenheit).then(() => {
                         document.querySelectorAll('[data-units]').forEach(b => b.classList.remove('active'));
                         e.target.classList.add('active');
+                        document.getElementById('tempUnits').textContent = fahrenheit ? '°F' : '°C';
                     }).catch(err => {
                         this.showToast('Failed to set temp units', 'error');
                     });
@@ -236,23 +241,56 @@ class BBQApp {
                 if (action === 'set-fan') {
                     const val = prompt('Set fan speed: 0=Auto, 1-5 manual');
                     const v = val ? parseInt(val) : null;
-                    if (v !== null && !Number.isNaN(v)) this.bluetooth.setFanSpeed(v).catch(() => this.showToast('Failed to set fan speed', 'error'));
+                    if (v !== null && !Number.isNaN(v) && v >= 0 && v <= 5) {
+                        this.bluetooth.setFanSpeed(v).then(() => {
+                            document.getElementById('fanSpeed').textContent = v === 0 ? 'Auto' : v;
+                            document.querySelectorAll('[data-fan]').forEach(btn => {
+                                btn.classList.toggle('active', parseInt(btn.dataset.fan) === v);
+                            });
+                        }).catch(() => this.showToast('Failed to set fan speed', 'error'));
+                    }
                 } else if (action === 'set-units') {
                     const val = prompt('Set units: 0 = °F, 1 = °C');
                     const v = val ? parseInt(val) : null;
-                    if (v === 0 || v === 1) this.bluetooth.setTempUnits(v === 0).catch(() => this.showToast('Failed to set temp units', 'error'));
+                    if (v === 0 || v === 1) {
+                        this.bluetooth.setTempUnits(v === 0).then(() => {
+                            document.getElementById('tempUnits').textContent = v === 0 ? '°F' : '°C';
+                            document.querySelectorAll('[data-units]').forEach(btn => {
+                                btn.classList.toggle('active', parseInt(btn.dataset.units) === v);
+                            });
+                        }).catch(() => this.showToast('Failed to set temp units', 'error'));
+                    }
                 } else if (action === 'set-sound') {
                     const val = prompt('Set sound level: 0 = off, 1-5');
                     const v = val ? parseInt(val) : null;
-                    if (v !== null && !Number.isNaN(v)) this.bluetooth.setSoundLevel(v).catch(() => this.showToast('Failed to set sound', 'error'));
+                    if (v !== null && !Number.isNaN(v) && v >= 0 && v <= 5) {
+                        this.bluetooth.setSoundLevel(v).then(() => {
+                            document.getElementById('soundLevel').textContent = v === 0 ? 'Off' : v;
+                            document.getElementById('soundValue').textContent = v === 0 ? 'Off' : v;
+                            document.getElementById('soundSlider').value = v;
+                        }).catch(() => this.showToast('Failed to set sound', 'error'));
+                    }
                 } else if (action === 'set-display') {
                     const val = prompt('Set display brightness: 1-3');
                     const v = val ? parseInt(val) : null;
-                    if (v !== null && !Number.isNaN(v)) this.bluetooth.setDisplayBrightness(v).catch(() => this.showToast('Failed to set display', 'error'));
+                    if (v !== null && !Number.isNaN(v) && v >= 1 && v <= 3) {
+                        this.bluetooth.setDisplayBrightness(v).then(() => {
+                            document.getElementById('displayLevel').textContent = v;
+                            document.getElementById('displayValue').textContent = v;
+                            document.getElementById('displaySlider').value = v;
+                        }).catch(() => this.showToast('Failed to set display', 'error'));
+                    }
                 } else if (action === 'set-lid') {
                     const val = prompt('Lid detect: 1 = enabled, 0 = disabled');
                     const v = val ? parseInt(val) : null;
-                    if (v === 0 || v === 1) this.bluetooth.setLidDetect(v === 1).catch(() => this.showToast('Failed to set lid detect', 'error'));
+                    if (v === 0 || v === 1) {
+                        this.bluetooth.setLidDetect(v === 1).then(() => {
+                            document.getElementById('lidDetect').textContent = v === 1 ? 'Enabled' : 'Disabled';
+                            document.querySelectorAll('[data-lid]').forEach(btn => {
+                                btn.classList.toggle('active', parseInt(btn.dataset.lid) === v);
+                            });
+                        }).catch(() => this.showToast('Failed to set lid detect', 'error'));
+                    }
                 }
             });
         });

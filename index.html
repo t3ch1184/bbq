@@ -25,6 +25,24 @@
                 <button id="connectBtn" class="primary-btn">Connect</button>
             </div>
         </div>
+        <!-- Quick view: pit + food temps for at-a-glance status -->
+        <div class="quick-view">
+            <div class="quick-card temp-item" title="Tap to set">
+                <div class="temp-label">Pit</div>
+                <div class="temp-value" id="pitTemp">--°F</div>
+                <div class="temp-target" id="pitTarget">Target: --°F</div>
+            </div>
+            <div class="quick-card temp-item" title="Tap to set">
+                <div class="temp-label">Food 1</div>
+                <div class="temp-value" id="food1Temp">--°F</div>
+                <div class="temp-target" id="food1Alarm">Alarm: Off</div>
+            </div>
+            <div class="quick-card temp-item" title="Tap to set">
+                <div class="temp-label">Food 2</div>
+                <div class="temp-value" id="food2Temp">--°F</div>
+                <div class="temp-target" id="food2Alarm">Alarm: Off</div>
+            </div>
+        </div>
         <div id="connectionStatus" class="status-bar disconnected">
             <span class="status-dot"></span>
             <span class="status-text">Disconnected</span>
@@ -37,10 +55,86 @@
 
     <!-- Main Content -->
     <main>
-        <!-- Controls removed: settings are now accessible by tapping status icons and temperature cards -->
+        <!-- Temperature History Chart -->
+        <section class="card">
+            <div class="section-header">
+                <h2>📊 Temperature History</h2>
+                <div class="graph-controls">
+                    <button class="small-btn active" onclick="app.setGraphRange(30)">30m</button>
+                    <button class="small-btn" onclick="app.setGraphRange(60)">1h</button>
+                    <button class="small-btn" onclick="app.setGraphRange(120)">2h</button>
+                </div>
+            </div>
+            <canvas id="tempChart"></canvas>
+        </section>
+
+        <!-- Status Overview -->
+        <section class="card">
+            <h2>⚙️ System Status</h2>
+            <div class="status-grid">
+                <div class="status-item" data-action="set-fan">
+                    <div class="status-icon">💨</div>
+                    <div class="status-label">Fan Speed</div>
+                    <div class="status-value" id="fanSpeed">Auto</div>
+                </div>
+                <div class="status-item" data-action="set-lid">
+                    <div class="status-icon">🔓</div>
+                    <div class="status-label">Lid Detect</div>
+                    <div class="status-value" id="lidDetect">Enabled</div>
+                </div>
+                <div class="status-item" data-action="set-units">
+                    <div class="status-icon">🌡️</div>
+                    <div class="status-label">Units</div>
+                    <div class="status-value" id="tempUnits">°F</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-icon">⏱️</div>
+                    <div class="status-label">Uptime</div>
+                    <div class="status-value" id="uptime">--</div>
+                </div>
+                <div class="status-item" data-action="set-sound">
+                    <div class="status-icon">🔊</div>
+                    <div class="status-label">Sound</div>
+                    <div class="status-value" id="soundLevel">3</div>
+                </div>
+                <div class="status-item" data-action="set-display">
+                    <div class="status-icon">💡</div>
+                    <div class="status-label">Display</div>
+                    <div class="status-value" id="displayLevel">3</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Fuel Monitor -->
+        <section class="card">
+            <h2>⛽ Fuel Monitor</h2>
+            <div class="fuel-status">
+                <div class="fuel-indicator">
+                    <div class="fuel-bar">
+                        <div class="fuel-bar-fill" id="fuelLevel" style="width: 100%"></div>
+                    </div>
+                    <div class="fuel-text" id="fuelText">Fuel OK</div>
+                </div>
+                <div class="fuel-details">
+                    <div class="fuel-metric">
+                        <span>Avg Fan Duty</span>
+                        <strong id="avgFanDuty">--</strong>
+                    </div>
+                    <div class="fuel-metric">
+                        <span>Temp Drop</span>
+                        <strong id="tempDrop">--</strong>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Temperature Controls -->
+        <section class="card">
+            <h2>🎛️ Temperature Controls</h2>
+            
             <div class="control-group">
                 <label for="pitSetSlider">
-                    Pit Temperature
+                    <span>🔥 Pit Target Temperature</span>
                     <span class="control-value" id="pitSetValue">225°F</span>
                 </label>
                 <input type="range" id="pitSetSlider" min="150" max="400" value="225" step="5">
@@ -50,10 +144,9 @@
                 </div>
             </div>
 
-            <!-- Food 1 Alarm -->
             <div class="control-group">
                 <label for="food1AlarmSlider">
-                    Food 1 Alarm
+                    <span>🥩 Food 1 Alarm</span>
                     <span class="control-value" id="food1AlarmValue">Off</span>
                 </label>
                 <input type="range" id="food1AlarmSlider" min="0" max="250" value="0" step="5">
@@ -63,10 +156,9 @@
                 </div>
             </div>
 
-            <!-- Food 2 Alarm -->
             <div class="control-group">
                 <label for="food2AlarmSlider">
-                    Food 2 Alarm
+                    <span>🍖 Food 2 Alarm</span>
                     <span class="control-value" id="food2AlarmValue">Off</span>
                 </label>
                 <input type="range" id="food2AlarmSlider" min="0" max="250" value="0" step="5">
@@ -75,10 +167,14 @@
                     <span>250°F</span>
                 </div>
             </div>
+        </section>
 
-            <!-- Fan Speed -->
+        <!-- Device Settings -->
+        <section class="card">
+            <h2>⚡ Device Settings</h2>
+            
             <div class="control-group">
-                <label>Fan Speed</label>
+                <label>💨 Fan Speed</label>
                 <div class="button-group">
                     <button class="toggle-btn active" data-fan="0">Auto</button>
                     <button class="toggle-btn" data-fan="1">1</button>
@@ -89,28 +185,25 @@
                 </div>
             </div>
 
-            <!-- Lid Detect -->
             <div class="control-group">
-                <label>Lid Detect</label>
+                <label>🔓 Lid Detect</label>
                 <div class="button-group">
                     <button class="toggle-btn active" data-lid="1">On</button>
                     <button class="toggle-btn" data-lid="0">Off</button>
                 </div>
             </div>
 
-            <!-- Temperature Units -->
             <div class="control-group">
-                <label>Temperature Units</label>
+                <label>🌡️ Temperature Units</label>
                 <div class="button-group">
                     <button class="toggle-btn active" data-units="0">°F</button>
                     <button class="toggle-btn" data-units="1">°C</button>
                 </div>
             </div>
 
-            <!-- Sound Level -->
             <div class="control-group">
                 <label for="soundSlider">
-                    Sound Level
+                    <span>🔊 Sound Level</span>
                     <span class="control-value" id="soundValue">3</span>
                 </label>
                 <input type="range" id="soundSlider" min="0" max="5" value="3" step="1">
@@ -120,15 +213,14 @@
                 </div>
             </div>
 
-            <!-- Display Brightness -->
             <div class="control-group">
                 <label for="displaySlider">
-                    Display Brightness
+                    <span>💡 Display Brightness</span>
                     <span class="control-value" id="displayValue">3</span>
                 </label>
-                <input type="range" id="displaySlider" min="0" max="3" value="3" step="1">
+                <input type="range" id="displaySlider" min="1" max="3" value="3" step="1">
                 <div class="range-labels">
-                    <span>Off</span>
+                    <span>1</span>
                     <span>3</span>
                 </div>
             </div>
