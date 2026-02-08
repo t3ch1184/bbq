@@ -13,12 +13,12 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" href="icon-192.png">
     <link rel="apple-touch-icon" href="icon-192.png">
-    <link rel="stylesheet" href="styles.css?v=6">
+    <link rel="stylesheet" href="styles.css?v=7">
 
     <!-- Auto-update: nuke old caches & force latest version -->
     <script>
     (function(){
-        var APP_VER = 'v6';
+        var APP_VER = 'v7';
         var KEY = 'bbq_ver';
         var prev = localStorage.getItem(KEY);
         if (prev && prev !== APP_VER) {
@@ -51,7 +51,6 @@
             <span class="app-name">BBQ Control</span>
         </div>
         <div class="top-bar-right">
-            <button id="themeToggle" class="top-btn" title="Toggle theme">🌙</button>
             <button id="connectBtn" class="connect-btn">
                 <span class="connect-dot"></span>
                 Connect
@@ -62,18 +61,6 @@
     <!-- Connection Status -->
     <div id="connectionStatus" class="conn-status disconnected">
         <span class="status-text">Not Connected</span>
-    </div>
-
-    <!-- Troubleshooting Help (hidden by default) -->
-    <div id="troubleshootHelp" class="help-banner" style="display: none;">
-        <div class="help-header">
-            <span>⚠️ Connection Help</span>
-            <button id="closeTroubleshoot" class="help-close">✕</button>
-        </div>
-        <div class="help-body">
-            <p><strong>Phone:</strong> Make sure BBQ controller is on and nearby. Close other Bluetooth apps.</p>
-            <p><strong>PC:</strong> Unpair device from phone first. Pair in Windows Settings, then reconnect here.</p>
-        </div>
     </div>
 
     <!-- Main Content -->
@@ -203,6 +190,62 @@
             </div>
         </div>
 
+        <!-- Programming / Automation Card -->
+        <div class="section-card prog-card">
+            <div class="prog-header">
+                <span class="prog-icon">⚙️</span>
+                <span class="prog-title">Cook Programming</span>
+            </div>
+
+            <!-- Pit Alarm -->
+            <div class="prog-group">
+                <div class="prog-group-title">Pit Alarm</div>
+                <div class="prog-row" data-prog="pit-alarm">
+                    <span class="prog-label">Deviation Alarm</span>
+                    <span class="prog-val" id="progPitAlarm">Off</span>
+                </div>
+            </div>
+
+            <!-- Delay Timer -->
+            <div class="prog-group">
+                <div class="prog-group-title">Delay Timer</div>
+                <div class="prog-row" data-prog="delay-time">
+                    <span class="prog-label">Timer</span>
+                    <span class="prog-val" id="progDelayTime">Off</span>
+                </div>
+                <div class="prog-row" data-prog="delay-pit-set">
+                    <span class="prog-label">Pit Temp After Timer</span>
+                    <span class="prog-val" id="progDelayPitSet">Off</span>
+                </div>
+            </div>
+
+            <!-- Food 1 Trigger -->
+            <div class="prog-group">
+                <div class="prog-group-title">Food 1 Trigger</div>
+                <div class="prog-row" data-prog="food1-trigger">
+                    <span class="prog-label">When Food 1 Reaches</span>
+                    <span class="prog-val" id="progFood1Trigger">Off</span>
+                </div>
+                <div class="prog-row" data-prog="food1-pit-set">
+                    <span class="prog-label">Change Pit To</span>
+                    <span class="prog-val" id="progFood1PitSet">Off</span>
+                </div>
+            </div>
+
+            <!-- Food 2 Trigger -->
+            <div class="prog-group">
+                <div class="prog-group-title">Food 2 Trigger</div>
+                <div class="prog-row" data-prog="food2-trigger">
+                    <span class="prog-label">When Food 2 Reaches</span>
+                    <span class="prog-val" id="progFood2Trigger">Off</span>
+                </div>
+                <div class="prog-row" data-prog="food2-pit-set">
+                    <span class="prog-label">Change Pit To</span>
+                    <span class="prog-val" id="progFood2PitSet">Off</span>
+                </div>
+            </div>
+        </div>
+
     </main>
 
     <!-- Footer -->
@@ -250,7 +293,7 @@
     <span id="food2AlarmValue" style="display:none">Off</span>
 
     <!-- Scripts -->
-    <script src="bluetooth.js?v=6"></script>
-    <script src="app.js?v=6"></script>
+    <script src="bluetooth.js?v=7"></script>
+    <script src="app.js?v=7"></script>
 </body>
 </html>

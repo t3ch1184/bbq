@@ -28,19 +28,6 @@
     --radius-sm: 10px;
 }
 
-/* Light mode */
-body:not(.dark-mode) {
-    --bg-0: #f2f2f2;
-    --bg-1: #ffffff;
-    --bg-2: #f0f0f0;
-    --bg-3: #e0e0e0;
-    --text-0: #1a1a1a;
-    --text-1: #555555;
-    --text-2: #999999;
-    --border: rgba(0,0,0,0.08);
-    --shadow: 0 4px 20px rgba(0,0,0,0.08);
-}
-
 /* --- Reset & Base --- */
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -253,27 +240,27 @@ main {
     transition: transform 0.15s, box-shadow 0.15s;
     -webkit-tap-highlight-color: transparent;
     position: relative;
-    overflow: hidden;
+    overflow: visible;
     /* Subtle ember glow */
     box-shadow:
         var(--shadow),
-        0 6px 30px -5px rgba(255, 90, 20, 0.18),
-        0 0 40px -8px rgba(255, 110, 40, 0.08);
-    animation: ember-pulse 8s ease-in-out infinite;
+        0 4px 20px -6px rgba(255, 90, 20, 0.08),
+        0 0 30px -10px rgba(255, 110, 40, 0.04);
+    animation: ember-pulse 10s ease-in-out infinite;
 }
 
 @keyframes ember-pulse {
     0%, 100% {
         box-shadow:
             var(--shadow),
-            0 6px 30px -5px rgba(255, 90, 20, 0.18),
-            0 0 40px -8px rgba(255, 110, 40, 0.08);
+            0 4px 20px -6px rgba(255, 90, 20, 0.08),
+            0 0 30px -10px rgba(255, 110, 40, 0.04);
     }
     50% {
         box-shadow:
             var(--shadow),
-            0 8px 35px -4px rgba(255, 90, 20, 0.26),
-            0 0 50px -6px rgba(255, 110, 40, 0.12);
+            0 6px 25px -5px rgba(255, 90, 20, 0.14),
+            0 0 35px -8px rgba(255, 110, 40, 0.07);
     }
 }
 
@@ -285,6 +272,65 @@ main {
     animation-delay: -5s;
 }
 
+/* --- Ember Pinpoints: tiny coal spots flickering under cards --- */
+.temp-card::after,
+.stats-strip::after,
+.section-card::after,
+.chart-card::after,
+.prog-card::after {
+    content: '';
+    position: absolute;
+    left: -3px;
+    right: -3px;
+    bottom: -6px;
+    height: 18px;
+    border-radius: 0 0 12px 12px;
+    pointer-events: none;
+    z-index: -1;
+    filter: blur(2px);
+    background:
+        radial-gradient(circle 3px at  5% 40%, rgba(255, 80, 10, 0.45) 0%, transparent 100%),
+        radial-gradient(circle 2px at 12% 55%, rgba(255,120, 30, 0.35) 0%, transparent 100%),
+        radial-gradient(circle 3px at 18% 30%, rgba(220, 60,  0, 0.40) 0%, transparent 100%),
+        radial-gradient(circle 2px at 25% 50%, rgba(255,100, 20, 0.30) 0%, transparent 100%),
+        radial-gradient(circle 4px at 32% 35%, rgba(255, 80, 10, 0.50) 0%, transparent 100%),
+        radial-gradient(circle 2px at 38% 60%, rgba(240, 90, 15, 0.32) 0%, transparent 100%),
+        radial-gradient(circle 3px at 45% 40%, rgba(255,110, 25, 0.42) 0%, transparent 100%),
+        radial-gradient(circle 2px at 52% 55%, rgba(220, 70,  5, 0.35) 0%, transparent 100%),
+        radial-gradient(circle 3px at 58% 30%, rgba(255, 85, 10, 0.38) 0%, transparent 100%),
+        radial-gradient(circle 4px at 65% 45%, rgba(255,120, 30, 0.48) 0%, transparent 100%),
+        radial-gradient(circle 2px at 72% 55%, rgba(240, 80, 10, 0.30) 0%, transparent 100%),
+        radial-gradient(circle 3px at 78% 35%, rgba(220, 60,  0, 0.42) 0%, transparent 100%),
+        radial-gradient(circle 2px at 85% 50%, rgba(255,100, 20, 0.36) 0%, transparent 100%),
+        radial-gradient(circle 3px at 92% 40%, rgba(255, 90, 15, 0.44) 0%, transparent 100%),
+        radial-gradient(circle 2px at 97% 55%, rgba(220, 70,  5, 0.32) 0%, transparent 100%);
+    animation: pinpoint-a 4s ease-in-out infinite,
+               pinpoint-b 5.5s ease-in-out infinite;
+}
+
+/* Stagger each card so no two flicker the same */
+.stats-strip::after              { animation-delay: -1.2s, -3.8s; }
+.section-card::after             { animation-delay: -2.7s, -1.1s; }
+.chart-card::after               { animation-delay: -0.5s, -4.3s; }
+.prog-card::after                { animation-delay: -3.4s, -2.0s; }
+.temp-card-row .temp-card:nth-child(1)::after { animation-delay: -1.8s, -4.9s; }
+.temp-card-row .temp-card:nth-child(2)::after { animation-delay: -3.1s, -0.7s; }
+
+@keyframes pinpoint-a {
+    0%, 100% { opacity: 0.4; }
+    20%      { opacity: 0.9; }
+    45%      { opacity: 0.3; }
+    70%      { opacity: 0.75; }
+    90%      { opacity: 0.5; }
+}
+@keyframes pinpoint-b {
+    0%, 100% { opacity: 0.55; }
+    15%      { opacity: 0.3; }
+    40%      { opacity: 0.85; }
+    65%      { opacity: 0.4; }
+    85%      { opacity: 0.7; }
+}
+
 .temp-card::before {
     content: '';
     position: absolute;
@@ -293,6 +339,8 @@ main {
     right: 0;
     height: 3px;
     border-radius: var(--radius) var(--radius) 0 0;
+    overflow: hidden;
+    clip-path: inset(0 round var(--radius) var(--radius) 0 0);
 }
 
 .temp-card.pit::before {
@@ -392,14 +440,14 @@ main {
     0%, 100% {
         box-shadow:
             var(--shadow),
-            0 8px 35px -4px rgba(255, 90, 20, 0.25),
-            0 0 50px -6px rgba(255, 120, 40, 0.12);
+            0 5px 25px -5px rgba(255, 90, 20, 0.14),
+            0 0 35px -8px rgba(255, 120, 40, 0.06);
     }
     50% {
         box-shadow:
             var(--shadow),
-            0 10px 40px -3px rgba(255, 90, 20, 0.35),
-            0 0 60px -5px rgba(255, 120, 40, 0.18);
+            0 7px 30px -4px rgba(255, 90, 20, 0.20),
+            0 0 40px -6px rgba(255, 120, 40, 0.10);
     }
 }
 
@@ -413,6 +461,10 @@ main {
     margin-bottom: 16px;
     border: 1px solid var(--border);
     box-shadow: var(--shadow);
+    position: relative;
+    overflow: visible;
+    animation: ember-pulse 10s ease-in-out infinite;
+    animation-delay: -4s;
 }
 
 .stat {
@@ -461,6 +513,10 @@ main {
     margin-bottom: 16px;
     border: 1px solid var(--border);
     box-shadow: var(--shadow);
+    position: relative;
+    overflow: visible;
+    animation: ember-pulse 9s ease-in-out infinite;
+    animation-delay: -6s;
 }
 
 .section-title {
@@ -836,6 +892,10 @@ footer {
     margin-bottom: 16px;
     border: 1px solid var(--border);
     box-shadow: var(--shadow);
+    position: relative;
+    overflow: visible;
+    animation: ember-pulse 11s ease-in-out infinite;
+    animation-delay: -2s;
 }
 
 .chart-header {
@@ -945,4 +1005,78 @@ footer {
 
 /* Hide slider when pill picker is shown */
 .modal-slider-section.hidden { display: none; }
+.modal-pills-section {
+    max-height: 45vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
 .modal-pills-section.hidden { display: none; }
+
+/* --- Programming / Automation Card --- */
+.prog-card {
+    padding: 16px 16px 8px;
+    animation: ember-pulse 12s ease-in-out infinite;
+    animation-delay: -8s;
+}
+
+.prog-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.prog-icon {
+    font-size: 1.1rem;
+}
+
+.prog-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-0);
+}
+
+.prog-group {
+    margin-bottom: 12px;
+}
+
+.prog-group-title {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-2);
+    margin-bottom: 6px;
+    padding-left: 2px;
+}
+
+.prog-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 14px;
+    background: var(--bg-2);
+    border-radius: var(--radius-sm);
+    margin-bottom: 4px;
+    cursor: pointer;
+    transition: background 0.15s;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.prog-row:active {
+    background: var(--bg-3);
+}
+
+.prog-label {
+    font-size: 0.85rem;
+    color: var(--text-1);
+    font-weight: 500;
+}
+
+.prog-val {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--orange);
+    min-width: 48px;
+    text-align: right;
+}

@@ -352,6 +352,45 @@ class BBQBluetooth {
         return this.sendCommand(0x09, value);
     }
 
+    async setDelayTime(fifteenMinBlocks) {
+        // Command 0x0A, value 0-96 (each unit = 15 min, max 24 hours)
+        const value = Math.max(0, Math.min(96, fifteenMinBlocks));
+        return this.sendCommand(0x0A, value);
+    }
+
+    async setDelayPitSet(tempF) {
+        // Command 0x0B, value = temp - 145 (0=off, 150-400°F)
+        if (tempF === 0) return this.sendCommand(0x0B, 0);
+        const clamped = Math.max(150, Math.min(400, tempF));
+        return this.sendCommand(0x0B, clamped - 145);
+    }
+
+    async setFood1TempTrigger(tempF) {
+        // Command 0x0C, direct value (0=off, 50-250°F)
+        const value = tempF === 0 ? 0 : Math.max(50, Math.min(250, tempF));
+        return this.sendCommand(0x0C, value);
+    }
+
+    async setFood1PitSet(tempF) {
+        // Command 0x0D, value = temp - 145 (0=off, 150-400°F)
+        if (tempF === 0) return this.sendCommand(0x0D, 0);
+        const clamped = Math.max(150, Math.min(400, tempF));
+        return this.sendCommand(0x0D, clamped - 145);
+    }
+
+    async setFood2TempTrigger(tempF) {
+        // Command 0x0E, direct value (0=off, 50-250°F)
+        const value = tempF === 0 ? 0 : Math.max(50, Math.min(250, tempF));
+        return this.sendCommand(0x0E, value);
+    }
+
+    async setFood2PitSet(tempF) {
+        // Command 0x0F, value = temp - 145 (0=off, 150-400°F)
+        if (tempF === 0) return this.sendCommand(0x0F, 0);
+        const clamped = Math.max(150, Math.min(400, tempF));
+        return this.sendCommand(0x0F, clamped - 145);
+    }
+
     // Update connection status
     updateStatus(state, message) {
         if (this.onStatusCallback) {

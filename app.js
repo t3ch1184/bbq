@@ -13,7 +13,6 @@ class BBQApp {
         this.maxDataPoints = 720; // 2 hours at 10-second intervals
         this.chart = null;
         this.currentData = null;
-        this.darkMode = true;
         
         // Fuel monitoring
         this.fuelMonitor = {
@@ -46,6 +45,9 @@ class BBQApp {
         // Setup UI event listeners
         this.setupEventListeners();
 
+        // Setup programming card listeners
+        this.setupProgrammingListeners();
+
         // Setup Chart.js
         this.setupChart();
 
@@ -54,14 +56,6 @@ class BBQApp {
 
         // Register service worker
         this.registerServiceWorker();
-
-        // Load theme preference
-        const savedTheme = localStorage.getItem('theme');
-        if (savedTheme === 'light') {
-            this.darkMode = false;
-            document.body.classList.remove('dark-mode');
-            document.getElementById('themeToggle').textContent = '☀️';
-        }
 
         // Setup modal
         this.setupModal();
@@ -125,12 +119,25 @@ class BBQApp {
 
     // Called by inline oninput on slider
     updateModalValue(value) {
-        const val = parseInt(value);
+        let val = parseInt(value);
         const display = document.getElementById('modalValueDisplay');
         const unit = document.getElementById('modalValueUnit');
+        const slider = document.getElementById('modalSlider');
         
         if (!display) {
             return;
+        }
+
+        // For alarm-type sliders with 0=Off and a valid range starting above 0,
+        // snap values in the dead zone to either 0 or the range start
+        if (this.currentModalType === 'alarm' && slider) {
+            const min = parseInt(slider.min);
+            const max = parseInt(slider.max);
+            // Detect dead zone: if min=0 and max >= 150, values 1-149 are invalid
+            if (min === 0 && max >= 150 && val > 0 && val < 150) {
+                val = val < 75 ? 0 : 150;
+                slider.value = val;
+            }
         }
         
         if (val === 0 && this.currentModalType === 'alarm') {
@@ -223,6 +230,126 @@ class BBQApp {
         this.modalCallback = null;
     }
 
+    updateProgrammingCard(data) {
+        // Pit Alarm: direct °F, 0 = off
+        const pa = document.getElementById('progPitAlarm');
+        if (pa) pa.textContent = data.pitAlarm === 0 ? 'Off' : `±${data.pitAlarm}°F`;
+
+        // Delay Time: raw value × 15 min
+        const dt = document.getElementById('progDelayTime');
+        if (dt) {
+            if (data.delayTime === 0) {
+                dt.textContent = 'Off';
+            } else {
+                const totalMin = data.delayTime * 15;
+                const h = Math.floor(totalMin / 60);
+                const m = totalMin % 60;
+                dt.textContent = h > 0 ? `${h}h ${m}m` : `${m}m`;
+            }
+        }
+
+        // Delay Pit Set: raw + 145 = °F, raw 0 = off
+        const dps = document.getElementById('progDelayPitSet');
+        if (dps) dps.textContent = data.delayPitSet === 0 ? 'Off' : `${data.delayPitSet + 145}°F`;
+
+        // Food 1 Trigger: direct °F, 0 = off
+        const f1t = document.getElementById('progFood1Trigger');
+        if (f1t) f1t.textContent = data.food1TempTrigger === 0 ? 'Off' : `${data.food1TempTrigger}°F`;
+
+        // Food 1 Pit Set: raw + 145, 0 = off
+        const f1p = document.getElementById('progFood1PitSet');
+        if (f1p) f1p.textContent = data.food1PitSet === 0 ? 'Off' : `${data.food1PitSet + 145}°F`;
+
+        // Food 2 Trigger: direct °F, 0 = off
+        const f2t = document.getElementById('progFood2Trigger');
+        if (f2t) f2t.textContent = data.food2TempTrigger === 0 ? 'Off' : `${data.food2TempTrigger}°F`;
+
+        // Food 2 Pit Set: raw + 145, 0 = off
+        const f2p = document.getElementById('progFood2PitSet');
+        if (f2p) f2p.textContent = data.food2PitSet === 0 ? 'Off' : `${data.food2PitSet + 145}°F`;
+    }
+
+    setupProgrammingListeners() {
+        document.querySelectorAll('.prog-row[data-prog]').forEach(row => {
+            row.addEventListener('click', async () => {
+                if (!this.bluetooth.connected) {
+                    this.showToast('Connect to BBQ first', 'warning');
+                    return;
+                }
+                const action = row.dataset.prog;
+
+                if (action === 'pit-alarm') {
+                    const current = this.currentData?.pitAlarm || 0;
+                    const v = await this.showModal('Pit Alarm (±°F deviation)', 0, 100, current, 5, 'alarm');
+                    if (v !== null && v !== undefined) {
+                        this.bluetooth.setPitAlarm(v).catch(e => this.handleWriteError(e, 'set pit alarm'));
+                    }
+                } else if (action === 'delay-time') {
+                    // Show pill modal with time options (15-min increments, grouped for usability)
+                    const current = this.currentData?.delayTime || 0;
+                    const options = [{ label: 'Off', value: 0 }];
+                    // Every 15 min up to 2h
+                    for (let i = 1; i <= 8; i++) {
+                        const totalMin = i * 15;
+                        const h = Math.floor(totalMin / 60);
+                        const m = totalMin % 60;
+                        options.push({ label: h > 0 ? (m > 0 ? `${h}h ${m}m` : `${h}h`) : `${m}m`, value: i });
+                    }
+                    // Every 30 min from 2.5h to 6h
+                    for (let i = 10; i <= 24; i += 2) {
+                        const totalMin = i * 15;
+                        const h = Math.floor(totalMin / 60);
+                        const m = totalMin % 60;
+                        options.push({ label: m > 0 ? `${h}h ${m}m` : `${h}h`, value: i });
+                    }
+                    // Every hour from 7h to 24h
+                    for (let i = 28; i <= 96; i += 4) {
+                        const totalMin = i * 15;
+                        const h = Math.floor(totalMin / 60);
+                        options.push({ label: `${h}h`, value: i });
+                    }
+                    const v = await this.showPillModal('Delay Timer', options, current);
+                    if (v !== null && v !== undefined) {
+                        this.bluetooth.setDelayTime(v).catch(e => this.handleWriteError(e, 'set delay timer'));
+                    }
+                } else if (action === 'delay-pit-set') {
+                    const raw = this.currentData?.delayPitSet || 0;
+                    const current = raw === 0 ? 0 : raw + 145;
+                    const v = await this.showModal('Pit Temp After Timer', 0, 400, current, 5, 'alarm');
+                    if (v !== null && v !== undefined) {
+                        this.bluetooth.setDelayPitSet(v).catch(e => this.handleWriteError(e, 'set delay pit temp'));
+                    }
+                } else if (action === 'food1-trigger') {
+                    const current = this.currentData?.food1TempTrigger || 0;
+                    const v = await this.showModal('Food 1 Temp Trigger', 0, 250, current, 5, 'alarm');
+                    if (v !== null && v !== undefined) {
+                        this.bluetooth.setFood1TempTrigger(v).catch(e => this.handleWriteError(e, 'set food 1 trigger'));
+                    }
+                } else if (action === 'food1-pit-set') {
+                    const raw = this.currentData?.food1PitSet || 0;
+                    const current = raw === 0 ? 0 : raw + 145;
+                    const v = await this.showModal('Pit Temp When Food 1 Reaches Trigger', 0, 400, current, 5, 'alarm');
+                    if (v !== null && v !== undefined) {
+                        this.bluetooth.setFood1PitSet(v).catch(e => this.handleWriteError(e, 'set food 1 pit'));
+                    }
+                } else if (action === 'food2-trigger') {
+                    const current = this.currentData?.food2TempTrigger || 0;
+                    const v = await this.showModal('Food 2 Temp Trigger', 0, 250, current, 5, 'alarm');
+                    if (v !== null && v !== undefined) {
+                        this.bluetooth.setFood2TempTrigger(v).catch(e => this.handleWriteError(e, 'set food 2 trigger'));
+                    }
+                } else if (action === 'food2-pit-set') {
+                    const raw = this.currentData?.food2PitSet || 0;
+                    const current = raw === 0 ? 0 : raw + 145;
+                    const v = await this.showModal('Pit Temp When Food 2 Reaches Trigger', 0, 400, current, 5, 'alarm');
+                    if (v !== null && v !== undefined) {
+                        this.bluetooth.setFood2PitSet(v).catch(e => this.handleWriteError(e, 'set food 2 pit'));
+                    }
+                }
+            });
+        });
+    }
+
     setupEventListeners() {
         // Connect button
         document.getElementById('connectBtn').addEventListener('click', () => {
@@ -231,16 +358,6 @@ class BBQApp {
             } else {
                 this.bluetooth.connect();
             }
-        });
-
-        // Troubleshooting help close button
-        document.getElementById('closeTroubleshoot').addEventListener('click', () => {
-            document.getElementById('troubleshootHelp').style.display = 'none';
-        });
-
-        // Theme toggle
-        document.getElementById('themeToggle').addEventListener('click', () => {
-            this.toggleTheme();
         });
 
         // Temperature cards: click to set targets/alarms via modal
@@ -308,6 +425,8 @@ class BBQApp {
                         }).catch(() => this.showToast('Failed to set lid detect', 'error'));
                     }
                 } else if (action === 'set-sound') {
+                    const curText = document.getElementById('soundLevel').textContent;
+                    const current = curText === 'Off' ? 0 : parseInt(curText) || 3;
                     const v = await this.showPillModal('Sound Level', [
                         { label: 'Off', value: 0 },
                         { label: '1', value: 1 },
@@ -315,28 +434,31 @@ class BBQApp {
                         { label: '3', value: 3 },
                         { label: '4', value: 4 },
                         { label: '5', value: 5 }
-                    ], 3);
+                    ], current);
                     if (v !== null && v !== undefined) {
                         this.bluetooth.setSoundLevel(v).then(() => {
                             document.getElementById('soundLevel').textContent = v === 0 ? 'Off' : v;
                         }).catch(() => this.showToast('Failed to set sound', 'error'));
                     }
                 } else if (action === 'set-display') {
+                    const current = parseInt(document.getElementById('displayLevel').textContent) || 3;
                     const v = await this.showPillModal('Screen Brightness', [
                         { label: '1', value: 1 },
                         { label: '2', value: 2 },
                         { label: '3', value: 3 }
-                    ], 3);
+                    ], current);
                     if (v !== null && v !== undefined) {
                         this.bluetooth.setDisplayBrightness(v).then(() => {
                             document.getElementById('displayLevel').textContent = v;
                         }).catch(() => this.showToast('Failed to set display', 'error'));
                     }
                 } else if (action === 'set-units') {
+                    const curText = document.getElementById('tempUnits').textContent;
+                    const current = curText === '°C' ? 1 : 0;
                     const v = await this.showPillModal('Temperature Units', [
                         { label: '°F', value: 0 },
                         { label: '°C', value: 1 }
-                    ], 0);
+                    ], current);
                     if (v !== null && v !== undefined) {
                         this.bluetooth.setTempUnits(v === 0).then(() => {
                             document.getElementById('tempUnits').textContent = v === 0 ? '°F' : '°C';
@@ -359,6 +481,9 @@ class BBQApp {
         document.getElementById('fanSpeed').textContent = data.fanSpeed === 0 ? 'Auto' : data.fanSpeed;
         document.getElementById('lidDetect').textContent = data.lidDetect ? 'On' : 'Off';
         document.getElementById('uptime').textContent = `${data.uptimeMin}m`;
+
+        // Update programming card
+        this.updateProgrammingCard(data);
 
         // Update temperature history and chart
         this.addToHistory(data);
@@ -768,7 +893,6 @@ class BBQApp {
         const statusBar = document.getElementById('connectionStatus');
         const statusText = document.querySelector('.status-text');
         const connectBtn = document.getElementById('connectBtn');
-        const troubleshootHelp = document.getElementById('troubleshootHelp');
 
         statusBar.className = `conn-status ${state}`;
         statusText.textContent = message;
@@ -777,11 +901,9 @@ class BBQApp {
         const dot = connectBtn.querySelector('.connect-dot');
         if (state === 'connected') {
             connectBtn.classList.add('connected');
-            // Replace text nodes only, keep the dot span
             Array.from(connectBtn.childNodes).forEach(n => { if (n.nodeType === 3) n.remove(); });
             if (dot) connectBtn.appendChild(document.createTextNode(' Disconnect'));
             else connectBtn.textContent = 'Disconnect';
-            troubleshootHelp.style.display = 'none';
 
             // Add glow to pit card
             const pitCard = document.querySelector('.temp-card.pit');
@@ -795,37 +917,6 @@ class BBQApp {
             // Remove pit glow
             const pitCard = document.querySelector('.temp-card.pit');
             if (pitCard) pitCard.classList.remove('has-reading');
-            
-            // Show troubleshooting help if disconnected with GATT error
-            if (state === 'disconnected' && message.includes('GATT')) {
-                troubleshootHelp.style.display = 'block';
-            } else if (state === 'connecting') {
-                troubleshootHelp.style.display = 'none';
-            }
-        }
-    }
-
-    toggleTheme() {
-        this.darkMode = !this.darkMode;
-        document.body.classList.toggle('dark-mode');
-        
-        const themeBtn = document.getElementById('themeToggle');
-        themeBtn.textContent = this.darkMode ? '🌙' : '☀️';
-        
-        // Save preference
-        localStorage.setItem('theme', this.darkMode ? 'dark' : 'light');
-
-        // Update chart colors
-        if (this.chart) {
-            const textColor = this.darkMode ? '#e0e0e0' : '#333';
-            const gridColor = this.darkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
-            
-            this.chart.options.plugins.legend.labels.color = textColor;
-            this.chart.options.scales.x.grid.color = gridColor;
-            this.chart.options.scales.x.ticks.color = textColor;
-            this.chart.options.scales.y.grid.color = gridColor;
-            this.chart.options.scales.y.ticks.color = textColor;
-            this.chart.update();
         }
     }
 
