@@ -2,14 +2,13 @@
 
 const CACHE_NAME = 'bbq-controller-v1';
 const urlsToCache = [
-    '/',
-    '/index.html',
-    '/styles.css',
-    '/app.js',
-    '/bluetooth.js',
-    '/manifest.json',
-    '/icon-192.png',
-    '/icon-512.png',
+    'index.html',
+    'styles.css',
+    'app.js',
+    'bluetooth.js',
+    'manifest.json',
+    'icon-192.png',
+    'icon-512.png',
     'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js'
 ];
 
@@ -74,7 +73,7 @@ self.addEventListener('fetch', (event) => {
             })
             .catch(() => {
                 // Return offline page if available
-                return caches.match('/index.html');
+                return caches.match('index.html');
             })
     );
 });
