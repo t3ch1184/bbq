@@ -13,7 +13,34 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" href="icon-192.png">
     <link rel="apple-touch-icon" href="icon-192.png">
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=6">
+
+    <!-- Auto-update: nuke old caches & force latest version -->
+    <script>
+    (function(){
+        var APP_VER = 'v6';
+        var KEY = 'bbq_ver';
+        var prev = localStorage.getItem(KEY);
+        if (prev && prev !== APP_VER) {
+            // Version changed — wipe everything
+            if ('caches' in window) {
+                caches.keys().then(function(names) {
+                    names.forEach(function(n) { caches.delete(n); });
+                });
+            }
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then(function(regs) {
+                    regs.forEach(function(r) { r.unregister(); });
+                });
+            }
+            localStorage.setItem(KEY, APP_VER);
+            // Reload clean after a brief moment to let unregister finish
+            setTimeout(function() { location.reload(true); }, 300);
+            return;
+        }
+        localStorage.setItem(KEY, APP_VER);
+    })();
+    </script>
 </head>
 <body class="dark-mode">
 
@@ -223,7 +250,7 @@
     <span id="food2AlarmValue" style="display:none">Off</span>
 
     <!-- Scripts -->
-    <script src="bluetooth.js"></script>
-    <script src="app.js"></script>
+    <script src="bluetooth.js?v=6"></script>
+    <script src="app.js?v=6"></script>
 </body>
 </html>

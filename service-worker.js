@@ -1,11 +1,11 @@
 // service-worker.js - PWA Service Worker
 
-const CACHE_NAME = 'bbq-controller-v5';
+const CACHE_NAME = 'bbq-controller-v6';
 const urlsToCache = [
     'index.html',
-    'styles.css',
-    'app.js',
-    'bluetooth.js',
+    'styles.css?v=6',
+    'app.js?v=6',
+    'bluetooth.js?v=6',
     'manifest.json'
 ];
 
