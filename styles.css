@@ -704,27 +704,29 @@ footer {
     }
     
     .quick-view {
-        gap: 0.3rem;
-        padding: 0 0.5rem 0.5rem 0.5rem;
+        gap: 0.25rem;
+        padding: 0 0.5rem 0.4rem 0.5rem;
     }
     
     .quick-card {
-        padding: 0.35rem 0.2rem;
+        padding: 0.3rem 0.15rem;
         border-radius: 6px;
+        box-shadow: 0 1px 4px var(--shadow);
     }
     
     .quick-card .temp-value {
-        font-size: 1.15rem;
+        font-size: 1.1rem;
+        margin: 0.15rem 0;
     }
     
     .quick-card .temp-label {
-        font-size: 0.55rem;
+        font-size: 0.5rem;
         margin-bottom: 0.1rem;
+        letter-spacing: 0.3px;
     }
     
     .quick-card .temp-target {
-        font-size: 0.6rem;
-        margin-top: 0.1rem;
+        display: none;
     }
     
     .status-grid {
