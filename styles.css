@@ -65,15 +65,15 @@ header {
 /* Quick view cards in header */
 .quick-view {
     display: flex;
-    gap: 0.75rem;
-    padding: 0.75rem 1rem 1rem 1rem;
+    gap: 0.5rem;
+    padding: 0 1rem 0.75rem 1rem;
     max-width: 1200px;
     margin: 0 auto;
 }
 .quick-card {
     flex: 1 1 0;
     background: linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-secondary) 100%);
-    padding: 1rem 1rem;
+    padding: 0.75rem 0.5rem;
     border-radius: 12px;
     text-align: center;
     box-shadow: 0 2px 8px var(--shadow);
@@ -86,24 +86,24 @@ header {
     box-shadow: 0 4px 12px var(--shadow);
 }
 .quick-card .temp-label {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     color: var(--text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    margin-bottom: 0.35rem;
+    margin-bottom: 0.25rem;
     font-weight: 600;
 }
 .quick-card .temp-value {
-    font-size: 2rem;
+    font-size: 1.5rem;
     font-weight: 800;
     color: var(--primary);
     line-height: 1;
-    margin: 0.25rem 0;
+    margin: 0.2rem 0;
 }
 .quick-card .temp-target {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     color: var(--text-secondary);
-    margin-top: 0.35rem;
+    margin-top: 0.25rem;
     font-weight: 500;
 }
 
@@ -610,26 +610,27 @@ footer {
     }
     
     .quick-view {
-        gap: 0.5rem;
-        padding: 0.5rem 0.75rem 0.75rem 0.75rem;
+        gap: 0.4rem;
+        padding: 0 0.5rem 0.5rem 0.5rem;
     }
     
     .quick-card {
-        padding: 0.5rem 0.4rem;
+        padding: 0.4rem 0.25rem;
+        border-radius: 8px;
     }
     
     .quick-card .temp-value {
-        font-size: 1.4rem;
+        font-size: 1.3rem;
     }
     
     .quick-card .temp-label {
-        font-size: 0.65rem;
-        margin-bottom: 0.2rem;
+        font-size: 0.6rem;
+        margin-bottom: 0.15rem;
     }
     
     .quick-card .temp-target {
-        font-size: 0.7rem;
-        margin-top: 0.2rem;
+        font-size: 0.65rem;
+        margin-top: 0.15rem;
     }
     
     .card {
@@ -684,27 +685,46 @@ footer {
 }
 
 @media (max-width: 480px) {
+    .header-content {
+        padding: 0.75rem 0.5rem 0.5rem 0.5rem;
+    }
+    
+    h1 {
+        font-size: 1.1rem;
+    }
+    
+    .primary-btn {
+        padding: 0.6rem 1rem;
+        font-size: 0.9rem;
+    }
+    
+    .icon-btn {
+        padding: 0.6rem;
+        font-size: 1rem;
+    }
+    
     .quick-view {
-        gap: 0.4rem;
-        padding: 0.4rem 0.5rem 0.6rem 0.5rem;
+        gap: 0.3rem;
+        padding: 0 0.5rem 0.5rem 0.5rem;
     }
     
     .quick-card {
-        padding: 0.4rem 0.25rem;
+        padding: 0.35rem 0.2rem;
+        border-radius: 6px;
     }
     
     .quick-card .temp-value {
-        font-size: 1.2rem;
+        font-size: 1.15rem;
     }
     
     .quick-card .temp-label {
-        font-size: 0.6rem;
-        margin-bottom: 0.15rem;
+        font-size: 0.55rem;
+        margin-bottom: 0.1rem;
     }
     
     .quick-card .temp-target {
-        font-size: 0.65rem;
-        margin-top: 0.15rem;
+        font-size: 0.6rem;
+        margin-top: 0.1rem;
     }
     
     .status-grid {
