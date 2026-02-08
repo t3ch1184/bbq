@@ -29,109 +29,15 @@
             <span class="status-dot"></span>
             <span class="status-text">Disconnected</span>
         </div>
+        <div id="lastEcho" class="status-echo">
+            Last command: <span id="lastEchoText">--</span>
+            <span id="lastEchoVerify" class="echo-verify">(no verification)</span>
+        </div>
     </header>
 
     <!-- Main Content -->
     <main>
-        <!-- Temperature Display -->
-        <section id="tempSection" class="card">
-            <h2>Temperatures</h2>
-            <div class="temp-grid">
-                <div class="temp-item">
-                    <div class="temp-label">Pit</div>
-                    <div class="temp-value" id="pitTemp">--°F</div>
-                    <div class="temp-target" id="pitTarget">Target: --°F</div>
-                </div>
-                <div class="temp-item">
-                    <div class="temp-label">Food 1</div>
-                    <div class="temp-value" id="food1Temp">--°F</div>
-                    <div class="temp-target" id="food1Alarm">Alarm: --°F</div>
-                </div>
-                <div class="temp-item">
-                    <div class="temp-label">Food 2</div>
-                    <div class="temp-value" id="food2Temp">--°F</div>
-                    <div class="temp-target" id="food2Alarm">Alarm: --°F</div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Temperature Graph -->
-        <section id="graphSection" class="card">
-            <h2>Temperature History</h2>
-            <div class="graph-controls">
-                <button class="small-btn" onclick="app.setGraphRange(15)">15m</button>
-                <button class="small-btn" onclick="app.setGraphRange(30)">30m</button>
-                <button class="small-btn active" onclick="app.setGraphRange(60)">1h</button>
-                <button class="small-btn" onclick="app.setGraphRange(180)">3h</button>
-            </div>
-            <canvas id="tempChart"></canvas>
-        </section>
-
-        <!-- Status Indicators -->
-        <section id="statusSection" class="card">
-            <h2>Status</h2>
-            <div class="status-grid">
-                <div class="status-item">
-                    <span class="status-icon">🌡️</span>
-                    <span class="status-label">Temp Units</span>
-                    <span class="status-value" id="tempUnits">°F</span>
-                </div>
-                <div class="status-item">
-                    <span class="status-icon">💨</span>
-                    <span class="status-label">Fan Speed</span>
-                    <span class="status-value" id="fanSpeed">Auto</span>
-                </div>
-                <div class="status-item">
-                    <span class="status-icon">🔔</span>
-                    <span class="status-label">Sound</span>
-                    <span class="status-value" id="soundLevel">Level 3</span>
-                </div>
-                <div class="status-item">
-                    <span class="status-icon">🔆</span>
-                    <span class="status-label">Display</span>
-                    <span class="status-value" id="displayBright">Level 3</span>
-                </div>
-                <div class="status-item">
-                    <span class="status-icon">⏰</span>
-                    <span class="status-label">Uptime</span>
-                    <span class="status-value" id="uptime">0m</span>
-                </div>
-                <div class="status-item">
-                    <span class="status-icon">🚪</span>
-                    <span class="status-label">Lid Detect</span>
-                    <span class="status-value" id="lidDetect">Enabled</span>
-                </div>
-            </div>
-        </section>
-
-        <!-- Fuel Monitor -->
-        <section id="fuelSection" class="card">
-            <h2>⛽ Fuel Monitor</h2>
-            <div class="fuel-status">
-                <div class="fuel-indicator">
-                    <div class="fuel-bar">
-                        <div id="fuelLevel" class="fuel-bar-fill"></div>
-                    </div>
-                    <div id="fuelText" class="fuel-text">Monitoring...</div>
-                </div>
-                <div class="fuel-details">
-                    <div class="fuel-metric">
-                        <span>Avg Fan Duty:</span>
-                        <span id="avgFanDuty">--%</span>
-                    </div>
-                    <div class="fuel-metric">
-                        <span>Temp Drop Rate:</span>
-                        <span id="tempDrop">--°F/min</span>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Controls -->
-        <section id="controlsSection" class="card">
-            <h2>Controls</h2>
-            
-            <!-- Pit Temperature -->
+        <!-- Controls removed: settings are now accessible by tapping status icons and temperature cards -->
             <div class="control-group">
                 <label for="pitSetSlider">
                     Pit Temperature
@@ -176,9 +82,10 @@
                 <div class="button-group">
                     <button class="toggle-btn active" data-fan="0">Auto</button>
                     <button class="toggle-btn" data-fan="1">1</button>
+                    <button class="toggle-btn" data-fan="2">2</button>
                     <button class="toggle-btn" data-fan="3">3</button>
+                    <button class="toggle-btn" data-fan="4">4</button>
                     <button class="toggle-btn" data-fan="5">5</button>
-                    <button class="toggle-btn" data-fan="7">7</button>
                 </div>
             </div>
 

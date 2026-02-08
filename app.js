@@ -41,6 +41,7 @@ class BBQApp {
         // Setup Bluetooth callbacks
         this.bluetooth.onDataCallback = (data) => this.handleTelemetryData(data);
         this.bluetooth.onStatusCallback = (state, message) => this.updateConnectionStatus(state, message);
+        this.bluetooth.onWriteEchoCallback = (cmd, arg) => this.handleWriteEcho(cmd, arg);
 
         // Setup UI event listeners
         this.setupEventListeners();
@@ -199,6 +200,62 @@ class BBQApp {
                 }
             });
         });
+
+        // New: Status icon click handlers (allow quick edits)
+        // Temperature cards: click to set targets/alarms
+        document.querySelectorAll('.temp-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                const id = item.querySelector('.temp-value').id; // pitTemp, food1Temp, food2Temp
+                if (id === 'pitTemp') {
+                    const val = prompt('Set pit target temperature (150-400 °F). Cancel to abort');
+                    const t = val ? parseInt(val) : null;
+                    if (t && this.bluetooth.connected) {
+                        this.bluetooth.setPitTemp(t).catch(() => this.showToast('Failed to set pit temp', 'error'));
+                    }
+                } else if (id === 'food1Temp') {
+                    const val = prompt('Set Food 1 alarm (0 = off, 50-250 °F). Cancel to abort');
+                    const t = val ? parseInt(val) : null;
+                    if ((t === 0 || (t >= 50 && t <= 250)) && this.bluetooth.connected) {
+                        this.bluetooth.setFood1Alarm(t).catch(() => this.showToast('Failed to set Food 1 alarm', 'error'));
+                    }
+                } else if (id === 'food2Temp') {
+                    const val = prompt('Set Food 2 alarm (0 = off, 50-250 °F). Cancel to abort');
+                    const t = val ? parseInt(val) : null;
+                    if ((t === 0 || (t >= 50 && t <= 250)) && this.bluetooth.connected) {
+                        this.bluetooth.setFood2Alarm(t).catch(() => this.showToast('Failed to set Food 2 alarm', 'error'));
+                    }
+                }
+            });
+        });
+
+        // Status items
+        document.querySelectorAll('.status-item[data-action]').forEach(item => {
+            item.addEventListener('click', (e) => {
+                const action = item.dataset.action;
+                if (!this.bluetooth.connected) { this.showToast('Connect first to change settings', 'warning'); return; }
+                if (action === 'set-fan') {
+                    const val = prompt('Set fan speed: 0=Auto, 1-5 manual');
+                    const v = val ? parseInt(val) : null;
+                    if (v !== null && !Number.isNaN(v)) this.bluetooth.setFanSpeed(v).catch(() => this.showToast('Failed to set fan speed', 'error'));
+                } else if (action === 'set-units') {
+                    const val = prompt('Set units: 0 = °F, 1 = °C');
+                    const v = val ? parseInt(val) : null;
+                    if (v === 0 || v === 1) this.bluetooth.setTempUnits(v === 0).catch(() => this.showToast('Failed to set temp units', 'error'));
+                } else if (action === 'set-sound') {
+                    const val = prompt('Set sound level: 0 = off, 1-5');
+                    const v = val ? parseInt(val) : null;
+                    if (v !== null && !Number.isNaN(v)) this.bluetooth.setSoundLevel(v).catch(() => this.showToast('Failed to set sound', 'error'));
+                } else if (action === 'set-display') {
+                    const val = prompt('Set display brightness: 1-3');
+                    const v = val ? parseInt(val) : null;
+                    if (v !== null && !Number.isNaN(v)) this.bluetooth.setDisplayBrightness(v).catch(() => this.showToast('Failed to set display', 'error'));
+                } else if (action === 'set-lid') {
+                    const val = prompt('Lid detect: 1 = enabled, 0 = disabled');
+                    const v = val ? parseInt(val) : null;
+                    if (v === 0 || v === 1) this.bluetooth.setLidDetect(v === 1).catch(() => this.showToast('Failed to set lid detect', 'error'));
+                }
+            });
+        });
     }
 
     handleTelemetryData(data) {
@@ -223,6 +280,61 @@ class BBQApp {
 
         // Check for alarms
         this.checkAlarms(data);
+    }
+
+    handleWriteEcho(cmd, arg) {
+        const hex = `0x${cmd.toString(16).padStart(2, '0')}`;
+        const text = `${hex} = ${arg}`;
+        const el = document.getElementById('lastEchoText');
+        const verifyEl = document.getElementById('lastEchoVerify');
+        if (el) el.textContent = text;
+        // Attempt verification against latest telemetry
+        const verified = this.verifyCommand(cmd, arg);
+        if (verifyEl) {
+            if (verified === true) {
+                verifyEl.textContent = '(verified)';
+                verifyEl.style.color = '#26de81';
+            } else if (verified === false) {
+                verifyEl.textContent = '(not verified)';
+                verifyEl.style.color = '#ff4757';
+            } else {
+                verifyEl.textContent = '(not verifiable)';
+                verifyEl.style.color = '';
+            }
+        }
+        this.showToast(`Cmd ${text} sent${verified === true ? ' (verified)' : ''}`, 'info', 2500);
+    }
+
+    verifyCommand(cmd, arg) {
+        // Return true = verified, false = not verified, null = not verifiable / unknown
+        if (!this.currentData) return null;
+        switch (cmd) {
+            case 0x01: // Pit set (telemetry.pitSet == value)
+                return (this.currentData.pitSet === arg) ? true : false;
+            case 0x02: // Food1 alarm (byte 11)
+                return (this.currentData.food1Alarm === arg) ? true : false;
+            case 0x03: // Food2 alarm (byte 12)
+                return (this.currentData.food2Alarm === arg) ? true : false;
+            case 0x04: // Pit alarm (byte 0)
+                return (this.currentData.pitAlarm === arg) ? true : false;
+            case 0x05: // Lid detect (bit)
+                return (this.currentData.lidDetect === arg) ? true : false;
+            case 0x06: // Fan speed
+                return (this.currentData.fanSpeed === arg) ? true : false;
+            case 0x07: // Temp units - non-volatile, not reliably visible
+            case 0x08: // Sound - non-volatile, not visible in telemetry
+            case 0x09: // Display - non-volatile, not visible in telemetry
+                return null;
+            default:
+                // For other commands (0x0A-0x0F) some map to bytes we can check
+                if (cmd === 0x0A) return (this.currentData.delayTime === arg) ? true : false;
+                if (cmd === 0x0B) return (this.currentData.delayPitSet === arg) ? true : false;
+                if (cmd === 0x0C) return (this.currentData.food1TempTrigger === arg) ? true : false;
+                if (cmd === 0x0D) return (this.currentData.food1PitSet === arg) ? true : false;
+                if (cmd === 0x0E) return (this.currentData.food2TempTrigger === arg) ? true : false;
+                if (cmd === 0x0F) return (this.currentData.food2PitSet === arg) ? true : false;
+                return null;
+        }
     }
 
     updateTemperature(probe, temp, target) {

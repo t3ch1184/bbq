@@ -267,6 +267,15 @@ main {
     border-radius: 8px;
 }
 
+.status-item[data-action] {
+    cursor: pointer;
+    transition: transform 0.12s ease;
+}
+
+.status-item[data-action]:hover {
+    transform: translateY(-4px);
+}
+
 .status-icon {
     font-size: 2rem;
     margin-bottom: 0.5rem;

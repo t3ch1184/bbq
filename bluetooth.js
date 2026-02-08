@@ -10,6 +10,7 @@ class BBQBluetooth {
         this.connected = false;
         this.onDataCallback = null;
         this.onStatusCallback = null;
+        this.onWriteEchoCallback = null;
         
         // GATT Service UUIDs
         this.SERVICE_UUID = '5fb70000-9c92-4489-ab95-5bc20bb36eab';
@@ -167,6 +168,23 @@ class BBQBluetooth {
             const data = new Uint8Array([command, value]);
             await this.writeChar.writeValue(data);
             console.log(`Sent command: 0x${command.toString(16).padStart(2, '0')} = ${value}`);
+
+            // Read echo (5fb70004 is readable on device) when available to confirm what was accepted
+            try {
+                const echoVal = await this.writeChar.readValue();
+                if (echoVal && echoVal.byteLength >= 2) {
+                    const echoCmd = echoVal.getUint8(0);
+                    const echoArg = echoVal.getUint8(1);
+                    console.log(`Device echo: 0x${echoCmd.toString(16).padStart(2, '0')} = ${echoArg}`);
+                    if (this.onWriteEchoCallback) {
+                        try { this.onWriteEchoCallback(echoCmd, echoArg); } catch (cbErr) { console.error('onWriteEchoCallback error', cbErr); }
+                    }
+                }
+            } catch (readErr) {
+                // Not fatal - some browsers/devices may not support read after write
+                console.debug('Could not read echo from write characteristic:', readErr);
+            }
+
             return true;
         } catch (error) {
             console.error('Write error:', error);
@@ -176,8 +194,10 @@ class BBQBluetooth {
 
     // Command shortcuts
     async setPitTemp(tempF) {
-        // Command 0x01, value = temp + 145
-        const value = Math.max(150, Math.min(400, tempF)) + 145;
+        // The device stores pit set as (value = temp - 145) in the telemetry mapping,
+        // so to send a target temperature we must send (temp - 145).
+        const clamped = Math.max(150, Math.min(400, tempF));
+        const value = clamped - 145;
         return this.sendCommand(0x01, value);
     }
 
@@ -205,8 +225,8 @@ class BBQBluetooth {
     }
 
     async setFanSpeed(speed) {
-        // Command 0x06, 0=auto, 1-7=manual
-        const value = Math.max(0, Math.min(7, speed));
+        // Command 0x06, 0=auto, device appears to accept 0-5 for manual speeds
+        const value = Math.max(0, Math.min(5, speed));
         return this.sendCommand(0x06, value);
     }
 
@@ -222,8 +242,9 @@ class BBQBluetooth {
     }
 
     async setDisplayBrightness(level) {
-        // Command 0x09, clamped to 0-3
-        const value = Math.max(0, Math.min(3, level));
+        // Command 0x09: device doesn't accept 0 (off) on some firmware — clamp to 1-3
+        const value = Math.max(1, Math.min(3, level));
+        if (level === 0) console.warn('Display brightness: device may ignore 0 (off); sending 1 instead');
         return this.sendCommand(0x09, value);
     }
 
