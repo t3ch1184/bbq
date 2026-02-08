@@ -486,9 +486,9 @@ class BBQApp {
 
         if (probe === 'pit') {
             const targetTemp = target > 0 ? target - 145 : 0;
-            targetElement.textContent = `Target: ${targetTemp}°F`;
+            targetElement.textContent = targetTemp > 0 ? `→ ${targetTemp}°F` : 'No target';
         } else {
-            targetElement.textContent = target === 0 ? 'Alarm: Off' : `Alarm: ${target}°F`;
+            targetElement.textContent = target === 0 ? 'No alarm' : `⏰ ${target}°F`;
         }
     }
 

@@ -122,13 +122,13 @@ class BBQBluetooth {
             // Byte 12: Food 2 Alarm (direct °F, 0 or 50-250)
             food2Alarm: dataView.getUint8(12),
             
-            // Byte 13: Unknown/reserved
-            byte13: dataView.getUint8(13),
+            // Byte 13: Fan Duty Cycle / Actual Speed (direct percentage 0-100)
+            fanDuty: dataView.getUint8(13),
             
-            // Byte 14: Combined byte [heartbeat:5][unknown:3]
+            // Byte 14: Heartbeat Clock & Status Flags [heartbeat_bit7:1][unknown:6][delay_enabled_bit0:1]
             byte14: dataView.getUint8(14),
             
-            // Byte 15: Alarm flags
+            // Byte 15: Alarm Enable Flags (bit1=Food1, bit2=Food2)
             byte15: dataView.getUint8(15),
             
             // Byte 16: Food 1 Temp Trigger (direct °F, 0 or 50-250)
@@ -149,8 +149,9 @@ class BBQBluetooth {
         data.lidDetect = (data.byte9 >> 3) & 0x01;
         data.fanSpeed = data.byte9 & 0x07;
 
-        // Parse byte 14: [heartbeat:5][unknown:3]
-        data.heartbeat = (data.byte14 >> 3) & 0x1F;
+        // Parse byte 14: [heartbeat_bit7:1][unknown:6][delay_enabled_bit0:1]
+        data.heartbeat = (data.byte14 >> 7) & 0x01;  // Bit 7: toggles every 5 seconds
+        data.delayEnabled = data.byte14 & 0x01;      // Bit 0: delay pit set enabled
 
         // Call callback with parsed data
         if (this.onDataCallback) {
